@@ -1,0 +1,221 @@
+import type { UserPreferences, WorkspaceMode } from './auth-context';
+import {
+  BookOpen,
+  Calendar,
+  CheckSquare,
+  Plane,
+  Sparkles,
+  Users,
+  Wallet,
+  MessageSquare,
+  Briefcase,
+  type LucideIcon,
+} from 'lucide-react';
+
+export type GoalDefinition = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+export const WORK_GOALS: GoalDefinition[] = [
+  {
+    id: 'acompanhar_tarefas',
+    label: 'Acompanhar minhas tarefas',
+    description: 'Visualizar tarefas abertas, em andamento e concluídas.',
+  },
+  {
+    id: 'registrar_feedbacks',
+    label: 'Registrar feedbacks',
+    description: 'Guardar feedbacks dados para colegas, liderados ou clientes.',
+  },
+  {
+    id: 'acompanhar_alunos',
+    label: 'Acompanhar alunos ou clientes',
+    description: 'Centralizar acompanhamentos de pessoas do seu trabalho.',
+  },
+  {
+    id: 'planejar_aulas',
+    label: 'Planejar aulas ou sessões',
+    description: 'Montar planejamento, cronograma e materiais.',
+  },
+  {
+    id: 'usar_chat_rapido',
+    label: 'Cadastrar tudo pelo chat',
+    description: 'Usar o chat guiado como atalho principal do sistema.',
+  },
+];
+
+export const LIFE_GOALS: GoalDefinition[] = [
+  {
+    id: 'acompanhar_tarefas_pessoais',
+    label: 'Acompanhar tarefas pessoais',
+    description: 'Organizar pendências do dia a dia.',
+  },
+  {
+    id: 'organizar_financas',
+    label: 'Organizar finanças pessoais',
+    description: 'Visualizar receitas, gastos e panorama financeiro.',
+  },
+  {
+    id: 'planejar_viagens',
+    label: 'Planejar viagens',
+    description: 'Guardar viagens, datas e objetivos.',
+  },
+  {
+    id: 'usar_chat_rapido',
+    label: 'Cadastrar tudo pelo chat',
+    description: 'Usar o chat guiado como atalho principal do sistema.',
+  },
+];
+
+export type DynamicMenuItem = {
+  key: string;
+  label: string;
+  path: string;
+  icon: LucideIcon;
+  description: string;
+};
+
+const WORK_MENU_BY_GOAL: Record<string, DynamicMenuItem[]> = {
+  acompanhar_tarefas: [
+    {
+      key: 'work-tasks',
+      label: 'Tarefas',
+      path: '/workspace/work/tasks',
+      icon: CheckSquare,
+      description: 'Acompanhe suas tarefas em kanban.',
+    },
+  ],
+  registrar_feedbacks: [
+    {
+      key: 'work-feedbacks',
+      label: 'Feedbacks',
+      path: '/workspace/work/feedbacks',
+      icon: MessageSquare,
+      description: 'Veja feedbacks registrados.',
+    },
+  ],
+  acompanhar_alunos: [
+    {
+      key: 'work-students',
+      label: 'Pessoas',
+      path: '/workspace/work/students',
+      icon: Users,
+      description: 'Acompanhe alunos, clientes ou atendidos.',
+    },
+  ],
+  planejar_aulas: [
+    {
+      key: 'work-classes',
+      label: 'Planejamento',
+      path: '/workspace/work/classes',
+      icon: BookOpen,
+      description: 'Veja aulas, sessões e planejamentos.',
+    },
+    {
+      key: 'work-commitments',
+      label: 'Compromissos',
+      path: '/workspace/work/commitments',
+      icon: Calendar,
+      description: 'Agenda semanal de aulas, reuniões e prazos.',
+    },
+  ],
+};
+
+const LIFE_MENU_BY_GOAL: Record<string, DynamicMenuItem[]> = {
+  acompanhar_tarefas_pessoais: [
+    {
+      key: 'life-tasks',
+      label: 'Tarefas',
+      path: '/workspace/life/tasks',
+      icon: CheckSquare,
+      description: 'Organize pendências pessoais em kanban.',
+    },
+    {
+      key: 'life-commitments',
+      label: 'Compromissos',
+      path: '/workspace/life/commitments',
+      icon: Calendar,
+      description: 'Agenda semanal de compromissos e prazos.',
+    },
+  ],
+  organizar_financas: [
+    {
+      key: 'life-finance',
+      label: 'Gestão Financeira',
+      path: '/workspace/life/finance',
+      icon: Wallet,
+      description: 'Receitas, despesas, gráficos e lançamentos.',
+    },
+  ],
+  planejar_viagens: [
+    {
+      key: 'life-trips',
+      label: 'Viagens',
+      path: '/pessoal/viagens',
+      icon: Plane,
+      description: 'Gerencie planos de viagem.',
+    },
+  ],
+};
+
+function dedupe(items: DynamicMenuItem[]) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const signature = `${item.path}::${item.label}`;
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
+export function getWorkspaceMenuItems(
+  preferences: UserPreferences | null | undefined,
+  workspace: WorkspaceMode,
+): DynamicMenuItem[] {
+  const goals =
+    workspace === 'work'
+      ? preferences?.workGoals ?? []
+      : preferences?.lifeGoals ?? [];
+
+  const menuSource =
+    workspace === 'work' ? WORK_MENU_BY_GOAL : LIFE_MENU_BY_GOAL;
+
+  const baseItems: DynamicMenuItem[] = [
+    {
+      key: `${workspace}-dashboard`,
+      label: 'Dashboard',
+      path: '/',
+      icon: workspace === 'work' ? Briefcase : Wallet,
+      description: 'Visão geral personalizada.',
+    },
+  ];
+
+  const dynamicItems = goals.flatMap((goal) => menuSource[goal] ?? []);
+
+  const alwaysChat: DynamicMenuItem[] = [
+    {
+      key: `${workspace}-chat`,
+      label: 'Chat Guiado',
+      path: `/chat?workspace=${workspace}`,
+      icon: Sparkles,
+      description: 'Cadastre dados pelo celular.',
+    },
+  ];
+
+  return dedupe([...baseItems, ...dynamicItems, ...alwaysChat]);
+}
+
+export function getWorkspaceTitle(workspace: WorkspaceMode) {
+  return workspace === 'work'
+    ? 'Workspace de Trabalho'
+    : 'Workspace de Vida Pessoal';
+}
+
+export function getGoalLabel(goalId: string) {
+  return [...WORK_GOALS, ...LIFE_GOALS].find(
+    (goal) => goal.id === goalId,
+  )?.label ?? goalId;
+}

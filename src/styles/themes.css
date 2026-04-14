@@ -1,0 +1,117 @@
+/* DualOS - Tema específico para Itaú e FIAP */
+
+/* Tema Itaú (Corporate Mode) */
+.theme-itau {
+  --theme-primary: #EC7000;
+  --theme-secondary: #003A8F;
+  --theme-background: #FFFFFF;
+  --theme-background-secondary: #F5F5F5;
+  --theme-foreground: #1A1A1A;
+  --theme-card: #FFFFFF;
+  --theme-card-foreground: #1A1A1A;
+  --theme-border: rgba(0, 0, 0, 0.1);
+  --theme-muted: #E0E0E0;
+  --theme-muted-foreground: #666666;
+  --theme-accent: #EC7000;
+  --theme-accent-foreground: #FFFFFF;
+  --theme-glow: rgba(236, 112, 0, 0);
+  --theme-hover: rgba(236, 112, 0, 0.08);
+}
+
+/* Tema FIAP (Education Mode - Dark) */
+.theme-fiap {
+ --theme-primary: #6A0DAD;
+  --theme-secondary: #8B2FCF;
+  --theme-background: #FFFFFF;
+  --theme-background-secondary: #F5F5F5;
+  --theme-foreground: #1A1A1A;
+  --theme-card: #FFFFFF;
+  --theme-card-foreground: #1A1A1A;
+  --theme-border: rgba(0, 0, 0, 0.1);
+  --theme-muted: #E0E0E0;
+  --theme-muted-foreground: #666666;
+  --theme-accent: #8B2FCF;
+  --theme-accent-foreground: #FFFFFF;
+  --theme-glow: rgba(236, 112, 0, 0);
+  --theme-hover: rgba(236, 112, 0, 0.08);
+}
+
+/* Tema Pessoal (Personal Mode - Verde Esmeralda) */
+.theme-pessoal {
+  --theme-primary: #059669;
+  --theme-secondary: #0284C7;
+  --theme-background: #FFFFFF;
+  --theme-background-secondary: #F0FDF4;
+  --theme-foreground: #1A1A1A;
+  --theme-card: #FFFFFF;
+  --theme-card-foreground: #1A1A1A;
+  --theme-border: rgba(0, 0, 0, 0.1);
+  --theme-muted: #D1FAE5;
+  --theme-muted-foreground: #6B7280;
+  --theme-accent: #059669;
+  --theme-accent-foreground: #FFFFFF;
+  --theme-glow: rgba(5, 150, 105, 0);
+  --theme-hover: rgba(5, 150, 105, 0.08);
+}
+
+/* Glow effects para FIAP */
+.theme-fiap .glow-effect {
+  box-shadow: 0 0 20px var(--theme-glow), 0 0 40px rgba(106, 13, 173, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.theme-fiap .glow-text {
+  text-shadow: 0 0 10px var(--theme-glow), 0 0 20px rgba(106, 13, 173, 0.4);
+}
+
+/* Animação de pulsação do glow */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--theme-glow), 0 0 40px rgba(106, 13, 173, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px var(--theme-glow), 0 0 50px rgba(106, 13, 173, 0.4);
+  }
+}
+
+/* Transições suaves entre temas */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Scrollbar customizada para FIAP */
+.theme-fiap ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.theme-fiap ::-webkit-scrollbar-track {
+  background: var(--theme-background-secondary);
+}
+
+.theme-fiap ::-webkit-scrollbar-thumb {
+  background: var(--theme-accent);
+  border-radius: 4px;
+}
+
+.theme-fiap ::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-secondary);
+}
+
+/* Utilitários para tema customizado */
+@theme inline {
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-secondary: var(--theme-secondary);
+  --color-theme-background: var(--theme-background);
+  --color-theme-background-secondary: var(--theme-background-secondary);
+  --color-theme-foreground: var(--theme-foreground);
+  --color-theme-card: var(--theme-card);
+  --color-theme-card-foreground: var(--theme-card-foreground);
+  --color-theme-border: var(--theme-border);
+  --color-theme-muted: var(--theme-muted);
+  --color-theme-muted-foreground: var(--theme-muted-foreground);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-accent-foreground: var(--theme-accent-foreground);
+  --color-theme-glow: var(--theme-glow);
+  --color-theme-hover: var(--theme-hover);
+}

@@ -1,0 +1,37 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export type ContextMode = 'work' | 'life';
+
+interface AppState {
+  contextMode: ContextMode;
+  sidebarCollapsed: boolean;
+  user: {
+    name: string;
+    email: string;
+    role: string;
+    avatar?: string;
+    photoURL?: string;
+  } | null;
+  setContextMode: (mode: ContextMode) => void;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setUser: (user: AppState['user']) => void;
+}
+
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      contextMode: 'work',
+      sidebarCollapsed: false,
+      user: null,
+      setContextMode: (mode) => set({ contextMode: mode }),
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      setUser: (user) => set({ user }),
+    }),
+    {
+      name: 'taskos-forall-storage',
+    },
+  ),
+);

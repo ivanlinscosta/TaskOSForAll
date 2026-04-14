@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwnerField() {
+      return isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    function isResourceOwner() {
+      return isAuthenticated() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /usuarios/{userId} {
+      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /tarefas/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /tarefas_pessoais/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /feedbacks/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /reunioes/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /alunos/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /aulas/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /custos/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /viagens/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /receitas/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /chat_logs/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+  }
+}

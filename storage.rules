@@ -1,0 +1,69 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Função para verificar se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Função para verificar se o usuário está acessando seu próprio diretório
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Limitar tamanho do arquivo a 10MB
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Verificar se o arquivo é uma imagem
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Verificar se o arquivo é um documento permitido
+    function isDocument() {
+      return request.resource.contentType.matches('application/pdf') || 
+             request.resource.contentType.matches('application/msword') || 
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+             request.resource.contentType.matches('application/vnd.ms-powerpoint') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    }
+
+    // Regras para a pasta de perfis (avatares)
+    match /perfis/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(userId) && isValidSize() && isImage();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Regras para a pasta de aulas (materiais de apoio)
+    match /aulas/{aulaId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidSize() && (isImage() || isDocument());
+      allow delete: if isAuthenticated();
+    }
+
+    // Regras para a pasta de alunos (fotos, documentos)
+    match /alunos/{alunoId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidSize() && (isImage() || isDocument());
+      allow delete: if isAuthenticated();
+    }
+
+    // Regras para a pasta de analistas (fotos, documentos)
+    match /analistas/{analistaId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidSize() && (isImage() || isDocument());
+      allow delete: if isAuthenticated();
+    }
+    
+    // Regras para a pasta de tarefas (anexos do kanban)
+    match /tarefas/{tarefaId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidSize() && (isImage() || isDocument());
+      allow delete: if isAuthenticated();
+    }
+  }
+}
