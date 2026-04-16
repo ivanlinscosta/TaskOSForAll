@@ -9,9 +9,13 @@ import {
   doc,
   getDocs,
   getDoc,
+  query,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase-config';
+import { requireUid, currentUidOrNull } from '../lib/require-auth';
+import { notificarSilencioso } from './notifications-service';
 
 export type CategoriaTarefaPessoal = 'pessoal' | 'saude' | 'financeiro' | 'casa' | 'familia' | 'outros';
 
@@ -46,13 +50,23 @@ function docToTarefa(id: string, data: any): TarefaPessoal {
 }
 
 export async function criarTarefaPessoal(tarefa: Omit<TarefaPessoal, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<string> {
+  const uid = requireUid();
   const data: any = {
     ...tarefa,
+    ownerId: uid,
     dataVencimento: tarefa.dataVencimento ? Timestamp.fromDate(new Date(tarefa.dataVencimento)) : null,
     criadoEm: Timestamp.now(),
     atualizadoEm: Timestamp.now(),
   };
   const ref = await addDoc(collection(db, COLLECTIONS.TAREFAS_PESSOAIS), data);
+  notificarSilencioso({
+    titulo: 'Nova tarefa criada',
+    mensagem: tarefa.titulo,
+    tipo: 'tarefa',
+    lida: false,
+    contexto: 'pessoal',
+    userId: uid,
+  });
   return ref.id;
 }
 
@@ -67,13 +81,19 @@ export async function deletarTarefaPessoal(id: string): Promise<void> {
 }
 
 export async function buscarTarefaPorId(id: string): Promise<TarefaPessoal | null> {
+  const uid = currentUidOrNull();
   const snap = await getDoc(doc(db, COLLECTIONS.TAREFAS_PESSOAIS, id));
   if (!snap.exists()) return null;
-  return docToTarefa(snap.id, snap.data());
+  const data = snap.data();
+  if (uid && data.ownerId && data.ownerId !== uid) return null;
+  return docToTarefa(snap.id, data);
 }
 
 export async function listarTarefasPessoais(): Promise<TarefaPessoal[]> {
-  const snap = await getDocs(collection(db, COLLECTIONS.TAREFAS_PESSOAIS));
+  const uid = currentUidOrNull();
+  if (!uid) return [];
+  const q = query(collection(db, COLLECTIONS.TAREFAS_PESSOAIS), where('ownerId', '==', uid));
+  const snap = await getDocs(q);
   return snap.docs.map((d) => docToTarefa(d.id, d.data()));
 }
 

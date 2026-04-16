@@ -52,7 +52,7 @@ export function Perfil() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--theme-foreground)]">Meu perfil</h1>
           <p className="text-sm text-[var(--theme-muted-foreground)]">
-            Veja os dados usados para personalizar seu TaskOS For All.
+            Veja os dados usados para personalizar seu TaskAll.
           </p>
         </div>
       </div>

@@ -8,10 +8,14 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  query,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 
 import { db } from '../lib/firebase-config';
+import { requireUid, currentUidOrNull } from '../lib/require-auth';
+import { notificarSilencioso } from './notifications-service';
 
 export type CategoriaReceita =
   | 'salario'
@@ -48,10 +52,20 @@ function docToReceita(id: string, data: any): Receita {
 }
 
 export async function criarReceita(receita: Omit<Receita, 'id' | 'criadoEm'>): Promise<string> {
+  const uid = requireUid();
   const ref = await addDoc(collection(db, COLLECTION_NAME), {
     ...receita,
+    ownerId: uid,
     data: Timestamp.fromDate(new Date(receita.data)),
     criadoEm: Timestamp.now(),
+  });
+  notificarSilencioso({
+    titulo: 'Nova receita registrada',
+    mensagem: `${receita.descricao} — R$ ${receita.valor.toFixed(2)}`,
+    tipo: 'receita',
+    lida: false,
+    contexto: 'pessoal',
+    userId: uid,
   });
   return ref.id;
 }
@@ -67,7 +81,10 @@ export async function deletarReceita(id: string): Promise<void> {
 }
 
 export async function listarReceitas(): Promise<Receita[]> {
-  const snap = await getDocs(collection(db, COLLECTION_NAME));
+  const uid = currentUidOrNull();
+  if (!uid) return [];
+  const q = query(collection(db, COLLECTION_NAME), where('ownerId', '==', uid));
+  const snap = await getDocs(q);
   const lista = snap.docs.map((d) => docToReceita(d.id, d.data()));
   lista.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
   return lista;

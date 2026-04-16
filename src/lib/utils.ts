@@ -1,5 +1,5 @@
 /**
- * DualOS - Utility Functions
+ * TaskAll - Utility Functions
  * Funções auxiliares para o sistema
  */
 

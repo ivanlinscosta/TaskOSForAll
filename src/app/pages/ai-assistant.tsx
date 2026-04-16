@@ -476,8 +476,12 @@ export function AIAssistant() {
                         }}
                       >
                         <span className="inline-flex items-center gap-2 text-[12px] text-[var(--theme-muted-foreground)]">
-                          <Loader className="h-4 w-4 animate-spin" />
-                          Pensando...
+                          <span className="flex items-center gap-1">
+                            <span className="inline-block h-2 w-2 rounded-full bg-[var(--theme-accent)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="inline-block h-2 w-2 rounded-full bg-[var(--theme-accent)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="inline-block h-2 w-2 rounded-full bg-[var(--theme-accent)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                          Pensando…
                         </span>
                       </div>
                     </div>

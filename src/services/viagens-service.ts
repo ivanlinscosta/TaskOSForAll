@@ -9,9 +9,13 @@ import {
   doc,
   getDocs,
   getDoc,
+  query,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase-config';
+import { requireUid, currentUidOrNull } from '../lib/require-auth';
+import { notificarSilencioso } from './notifications-service';
 
 export interface Atividade {
   id: string;
@@ -96,14 +100,24 @@ function docToViagem(id: string, data: any): Viagem {
 }
 
 export async function criarViagem(viagem: Omit<Viagem, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<string> {
+  const uid = requireUid();
   const data: any = {
     ...viagem,
+    ownerId: uid,
     dataIda: Timestamp.fromDate(new Date(viagem.dataIda)),
     dataVolta: viagem.dataVolta ? Timestamp.fromDate(new Date(viagem.dataVolta)) : null,
     criadoEm: Timestamp.now(),
     atualizadoEm: Timestamp.now(),
   };
   const ref = await addDoc(collection(db, COLLECTIONS.VIAGENS), data);
+  notificarSilencioso({
+    titulo: 'Nova viagem planejada',
+    mensagem: `${viagem.destino} — ${viagem.status === 'planejada' ? 'planejada' : viagem.status}`,
+    tipo: 'viagem',
+    lida: false,
+    contexto: 'pessoal',
+    userId: uid,
+  });
   return ref.id;
 }
 
@@ -119,13 +133,19 @@ export async function deletarViagem(id: string): Promise<void> {
 }
 
 export async function buscarViagemPorId(id: string): Promise<Viagem | null> {
+  const uid = currentUidOrNull();
   const snap = await getDoc(doc(db, COLLECTIONS.VIAGENS, id));
   if (!snap.exists()) return null;
-  return docToViagem(snap.id, snap.data());
+  const data = snap.data();
+  if (uid && data.ownerId && data.ownerId !== uid) return null;
+  return docToViagem(snap.id, data);
 }
 
 export async function listarViagens(): Promise<Viagem[]> {
-  const snap = await getDocs(collection(db, COLLECTIONS.VIAGENS));
+  const uid = currentUidOrNull();
+  if (!uid) return [];
+  const q = query(collection(db, COLLECTIONS.VIAGENS), where('ownerId', '==', uid));
+  const snap = await getDocs(q);
   const viagens = snap.docs.map((d) => docToViagem(d.id, d.data()));
   viagens.sort((a, b) => new Date(b.dataIda).getTime() - new Date(a.dataIda).getTime());
   return viagens;

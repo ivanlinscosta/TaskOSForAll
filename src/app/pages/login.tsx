@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
+import taskosIcon from '../../assets/task-os-icon.png';
+import dashboardBg from '../../assets/trabalho_dashboard.svg';
 
 export function Login() {
   const navigate = useNavigate();
@@ -152,20 +154,38 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[var(--theme-background)] to-[var(--theme-card)]">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-[var(--theme-background)] to-[var(--theme-card)]">
+      {/* Background SVG (visão do dashboard) */}
+      <img
+        src={dashboardBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.08] mix-blend-luminosity select-none"
+      />
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.04] pointer-events-none" />
+      <div
+        className="absolute -top-32 -right-32 h-96 w-96 rounded-full opacity-20 blur-3xl pointer-events-none"
+        style={{ background: 'var(--theme-accent)' }}
+      />
+      <div
+        className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full opacity-20 blur-3xl pointer-events-none"
+        style={{ background: '#EC7000' }}
+      />
 
-      <Card className="w-full max-w-md relative z-10 shadow-2xl border-[var(--theme-border)]">
+      <Card className="w-full max-w-md relative z-10 shadow-2xl border-[var(--theme-border)] backdrop-blur-sm">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-[#6A0DAD] to-[#EC7000] flex items-center justify-center mb-4">
-            <span className="text-3xl font-bold text-white">D</span>
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+            <img
+              src={taskosIcon}
+              alt="TaskAll"
+              className="h-20 w-20 object-contain drop-shadow-lg"
+            />
           </div>
           <CardTitle className="text-3xl font-bold text-[var(--theme-foreground)]">
-            TaskOS For All
+            TaskAll
           </CardTitle>
           <CardDescription className="text-[var(--theme-muted-foreground)]">
-            Sistema personalizado para trabalho e vida pessoal
+            Sua central de evolução pessoal e profissional.
           </CardDescription>
         </CardHeader>
 

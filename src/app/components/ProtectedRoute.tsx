@@ -1,14 +1,15 @@
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router';
+import { Navigate } from 'react-router';
 import { useAuth } from '../../lib/auth-context';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  /** Se true, a rota é o próprio /onboarding — não redireciona de volta. */
+  allowOnboarding?: boolean;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowOnboarding }: ProtectedRouteProps) {
   const { user, loading, needsOnboarding } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -25,8 +26,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
-  if (needsOnboarding && location.pathname !== '/onboarding') {
+  // Se o usuário ainda não concluiu o setup inicial e está tentando entrar
+  // no Layout (dashboard, páginas internas), força para /onboarding.
+  if (needsOnboarding && !allowOnboarding) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // Se o setup já foi concluído e o usuário tenta acessar /onboarding
+  // diretamente, manda para o dashboard.
+  if (!needsOnboarding && allowOnboarding) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

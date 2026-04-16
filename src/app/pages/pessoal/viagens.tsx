@@ -10,6 +10,7 @@ import {
   Loader,
   MapPin,
   Pencil,
+  Sparkles,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -18,6 +19,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as viagensService from '../../../services/viagens-service';
+import { PlanViagemIADialog } from '../../components/PlanViagemIADialog';
+import type { ViagemPlanResult } from '../../../services/viagem-ai-service';
 
 const STATUS_LABELS: Record<string, string> = {
   planejada: 'Planejada',
@@ -44,6 +47,45 @@ export function Viagens() {
   const navigate = useNavigate();
   const [viagens, setViagens] = useState<viagensService.Viagem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [planIAOpen, setPlanIAOpen] = useState(false);
+
+  const handleAIPlanAccepted = async (plan: ViagemPlanResult) => {
+    try {
+      const orcamentoDetalhado: viagensService.ItemOrcamento[] = plan.orcamentoDetalhado.map((o) => {
+        const item: viagensService.ItemOrcamento = {
+          categoria: o.categoria,
+          valor: o.valor,
+          formaPagamento: o.formaPagamento,
+        };
+        if (o.formaPagamento === 'a_prazo' && o.parcelas) item.parcelas = o.parcelas;
+        return item;
+      });
+
+      const atividades: viagensService.Atividade[] = plan.atividades.map((a, i) => ({
+        id: crypto.randomUUID(),
+        nome: a.nome,
+        data: a.data,
+        horario: a.horario,
+      }));
+
+      await viagensService.criarViagem({
+        destino: plan.destino,
+        descricao: plan.descricao,
+        dataIda: new Date(plan.dataIda),
+        dataVolta: new Date(plan.dataVolta),
+        orcamento: plan.orcamentoTotal,
+        gastoReal: 0,
+        status: 'planejada',
+        atividades,
+        orcamentoDetalhado,
+        notas: plan.notas,
+      });
+      toast.success('Viagem criada com sucesso a partir do plano de IA!');
+      carregarViagens();
+    } catch {
+      toast.error('Erro ao criar viagem a partir do plano');
+    }
+  };
 
   useEffect(() => {
     carregarViagens();
@@ -88,13 +130,23 @@ export function Viagens() {
             {viagens.length} viagens registradas
           </p>
         </div>
-        <Button
-          onClick={() => navigate('/pessoal/viagens/nova')}
-          className="gap-2"
-          style={{ background: 'var(--theme-accent)', color: '#fff' }}
-        >
-          <Plus className="h-4 w-4" /> Nova Viagem
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setPlanIAOpen(true)}
+          >
+            <Sparkles className="h-4 w-4" style={{ color: 'var(--theme-accent)' }} />
+            Planejar com IA
+          </Button>
+          <Button
+            onClick={() => navigate('/pessoal/viagens/nova')}
+            className="gap-2"
+            style={{ background: 'var(--theme-accent)', color: '#fff' }}
+          >
+            <Plus className="h-4 w-4" /> Nova Viagem
+          </Button>
+        </div>
       </div>
 
       {viagens.length === 0 ? (
@@ -252,6 +304,11 @@ export function Viagens() {
           })}
         </div>
       )}
+      <PlanViagemIADialog
+        open={planIAOpen}
+        onOpenChange={setPlanIAOpen}
+        onAccept={handleAIPlanAccepted}
+      />
     </div>
   );
 }

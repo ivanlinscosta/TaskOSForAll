@@ -9,9 +9,13 @@ import {
   doc,
   getDocs,
   getDoc,
+  query,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase-config';
+import { requireUid, currentUidOrNull } from '../lib/require-auth';
+import { notificarSilencioso } from './notifications-service';
 
 export type CategoriaCusto =
   | 'alimentacao'
@@ -36,6 +40,9 @@ export interface Custo {
   comprovante?: string;
   notas?: string;
   criadoEm?: Date;
+  origem?: 'cartao' | 'manual';
+  faturaId?: string;
+  nomeCartao?: string;
 }
 
 function docToCusto(id: string, data: any): Custo {
@@ -50,16 +57,29 @@ function docToCusto(id: string, data: any): Custo {
     comprovante: data.comprovante || '',
     notas: data.notas || '',
     criadoEm: data.criadoEm?.toDate?.() || new Date(),
+    origem: data.origem,
+    faturaId: data.faturaId,
+    nomeCartao: data.nomeCartao,
   };
 }
 
 export async function criarCusto(custo: Omit<Custo, 'id' | 'criadoEm'>): Promise<string> {
+  const uid = requireUid();
   const data: any = {
     ...custo,
+    ownerId: uid,
     data: Timestamp.fromDate(new Date(custo.data)),
     criadoEm: Timestamp.now(),
   };
   const ref = await addDoc(collection(db, COLLECTIONS.CUSTOS), data);
+  notificarSilencioso({
+    titulo: 'Nova despesa registrada',
+    mensagem: `${custo.descricao} — R$ ${custo.valor.toFixed(2)}`,
+    tipo: 'despesa',
+    lida: false,
+    contexto: 'pessoal',
+    userId: uid,
+  });
   return ref.id;
 }
 
@@ -74,13 +94,19 @@ export async function deletarCusto(id: string): Promise<void> {
 }
 
 export async function buscarCustoPorId(id: string): Promise<Custo | null> {
+  const uid = currentUidOrNull();
   const snap = await getDoc(doc(db, COLLECTIONS.CUSTOS, id));
   if (!snap.exists()) return null;
-  return docToCusto(snap.id, snap.data());
+  const data = snap.data();
+  if (uid && data.ownerId && data.ownerId !== uid) return null;
+  return docToCusto(snap.id, data);
 }
 
 export async function listarCustos(): Promise<Custo[]> {
-  const snap = await getDocs(collection(db, COLLECTIONS.CUSTOS));
+  const uid = currentUidOrNull();
+  if (!uid) return [];
+  const q = query(collection(db, COLLECTIONS.CUSTOS), where('ownerId', '==', uid));
+  const snap = await getDocs(q);
   const custos = snap.docs.map((d) => docToCusto(d.id, d.data()));
   custos.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
   return custos;

@@ -1,0 +1,94 @@
+import { z } from 'zod';
+import { ai } from '../genkit';
+
+const CarreiraInputSchema = z.object({
+  cargo: z.string().optional(),
+  area: z.string().optional(),
+  anos_experiencia: z.string().optional(),
+  objetivos: z.string().optional(),
+  habilidades_atuais: z.string().optional(),
+  curriculo_texto: z.string().optional(),
+});
+
+const HardSkillSchema = z.object({
+  skill: z.string(),
+  nivel: z.enum(['basico', 'intermediario', 'avancado']),
+  gap: z.string(),
+});
+
+const SoftSkillSchema = z.object({
+  skill: z.string(),
+  avaliacao: z.string(),
+});
+
+const RecomendacaoCarreiraSchema = z.object({
+  tipo: z.enum(['livro', 'curso', 'video']),
+  titulo: z.string(),
+  autor_ou_canal: z.string(),
+  descricao: z.string(),
+  motivo: z.string(),
+});
+
+const CarreiraOutputSchema = z.object({
+  analise_perfil: z.string(),
+  pontos_fortes: z.array(z.string()),
+  pontos_melhorar: z.array(z.string()),
+  hard_skills: z.array(HardSkillSchema),
+  soft_skills: z.array(SoftSkillSchema),
+  recomendacoes: z.array(RecomendacaoCarreiraSchema),
+});
+
+export type CarreiraOutput = z.infer<typeof CarreiraOutputSchema>;
+
+export const carreiraFlow = ai.defineFlow(
+  {
+    name: 'carreiraFlow',
+    inputSchema: CarreiraInputSchema,
+    outputSchema: CarreiraOutputSchema,
+  },
+  async ({ cargo, area, anos_experiencia, objetivos, habilidades_atuais, curriculo_texto }) => {
+    const perfil = [
+      cargo ? `Cargo atual: ${cargo}` : '',
+      area ? `Área de atuação: ${area}` : '',
+      anos_experiencia ? `Anos de experiência: ${anos_experiencia}` : '',
+      objetivos ? `Objetivos de carreira: ${objetivos}` : '',
+      habilidades_atuais ? `Habilidades que já domina: ${habilidades_atuais}` : '',
+      curriculo_texto ? `\nConteúdo do currículo:\n${curriculo_texto}` : '',
+    ].filter(Boolean).join('\n');
+
+    const response = await ai.generate({
+      prompt: `Você é um coach de carreira especialista no mercado brasileiro de trabalho.
+
+Analise o perfil profissional abaixo e forneça:
+
+1. **analise_perfil**: Um parágrafo de 2-3 frases resumindo o perfil, pontos de destaque e posicionamento de mercado.
+
+2. **pontos_fortes**: Liste de 3 a 5 pontos fortes do profissional com base no perfil.
+
+3. **pontos_melhorar**: Liste de 3 a 5 áreas de melhoria mais impactantes para os objetivos declarados.
+
+4. **hard_skills**: Liste de 4 a 8 habilidades técnicas relevantes para a área/cargo, indicando o nível aparente (basico/intermediario/avancado) e um gap específico a desenvolver.
+
+5. **soft_skills**: Liste de 3 a 5 competências comportamentais identificadas ou recomendadas, com avaliação curta (1 frase).
+
+6. **recomendacoes**: Forneça 6 a 9 recomendações de conteúdo REAIS e ESPECÍFICOS:
+   - 2 a 3 livros (tipo: "livro") — cite título e autor reais
+   - 2 a 3 cursos (tipo: "curso") — cite plataforma e nome real (Alura, Coursera, Udemy, etc.)
+   - 2 a 3 vídeos/canais do YouTube (tipo: "video") — cite canal e tema real
+
+   Para cada um: explique em "motivo" por que é relevante para os objetivos do profissional (1-2 frases diretas).
+
+Diretrizes:
+- Use português brasileiro
+- Seja específico e acionável, não genérico
+- Adapte tudo aos objetivos declarados
+- Cite apenas recursos reais e conhecidos
+
+Perfil profissional:
+${perfil}`,
+      output: { schema: CarreiraOutputSchema },
+    });
+
+    return response.output!;
+  }
+);

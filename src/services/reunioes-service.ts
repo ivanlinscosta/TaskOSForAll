@@ -10,9 +10,12 @@ import {
   doc,
   getDocs,
   getDoc,
+  query,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
+import { requireUid, currentUidOrNull } from '../lib/require-auth';
 
 export interface Acao {
   id: string;
@@ -50,7 +53,9 @@ const COLLECTION_NAME = 'reunioes';
  */
 export async function criarReuniao(reuniao: Omit<Reuniao, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<string> {
   try {
+    const uid = requireUid();
     const reuniaoData: any = {
+      ownerId: uid,
       titulo: reuniao.titulo,
       tipo: reuniao.tipo || 'alinhamento',
       data: Timestamp.fromDate(new Date(reuniao.data)),
@@ -121,9 +126,11 @@ export async function deletarReuniao(id: string): Promise<void> {
  */
 export async function buscarReuniaoPorId(id: string): Promise<Reuniao | null> {
   try {
+    const uid = currentUidOrNull();
     const docSnap = await getDoc(doc(db, COLLECTION_NAME, id));
     if (docSnap.exists()) {
       const data = docSnap.data();
+      if (uid && data.ownerId && data.ownerId !== uid) return null;
       return {
         id: docSnap.id,
         titulo: data.titulo || '',
@@ -159,7 +166,10 @@ export async function buscarReuniaoPorId(id: string): Promise<Reuniao | null> {
  */
 export async function listarReunioes(): Promise<Reuniao[]> {
   try {
-    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const uid = currentUidOrNull();
+    if (!uid) return [];
+    const q = query(collection(db, COLLECTION_NAME), where('ownerId', '==', uid));
+    const snapshot = await getDocs(q);
     const reunioes = snapshot.docs.map((d) => {
       const data = d.data();
       return {

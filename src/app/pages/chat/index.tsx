@@ -152,7 +152,7 @@ export function ChatGuiado() {
   const { user, userProfile } = useAuth();
   const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([
-    makeMessage('bot', 'Olá! Vou te ajudar a cadastrar informações no TaskOS For All. Escolha uma ação para começar.'),
+    makeMessage('bot', 'Olá! Vou te ajudar a cadastrar informações no TaskAll. Escolha uma ação para começar.'),
   ]);
   const [step, setStep] = useState<ChatStep>('choose_action');
   const [selectedAction, setSelectedAction] = useState<ChatAction | null>(null);

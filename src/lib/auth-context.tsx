@@ -13,11 +13,42 @@ import {
 import { auth, db } from './firebase-config';
 import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
 
+// Mantido para compatibilidade com código antigo; o produto agora usa
+// um único contexto unificado (sem dualidade work/life).
 export type WorkspaceMode = 'work' | 'life';
 
 export interface UserPreferences {
-  workGoals: string[];
-  lifeGoals: string[];
+  /** Objetivos de uso da plataforma (lista unificada, sem work/life). */
+  objetivos: string[];
+  /** Compat com código legado. */
+  workGoals?: string[];
+  lifeGoals?: string[];
+}
+
+export interface SoftSkillsProfile {
+  comunicacao: number;       // 1-5
+  lideranca: number;         // 1-5
+  colaboracao: number;       // 1-5
+  resolucaoProblemas: number;// 1-5
+  adaptabilidade: number;    // 1-5
+  organizacao: number;       // 1-5
+  estiloTrabalho?: string;
+  pontosFortes?: string;
+  pontosMelhorar?: string;
+}
+
+export interface FinanceProfile {
+  rendaMensal: number;
+  /** @deprecated — agora calculado a partir das despesas do mês na tela de finanças */
+  gastoMedioMensal?: number;
+  reservaEmergencia?: number;
+  /** Valor total aplicado em investimentos (R$). */
+  totalInvestido?: number;
+  objetivosFinanceiros: string[];
+  perfilInvestidor?: 'conservador' | 'moderado' | 'arrojado' | 'indefinido';
+  jaInveste?: boolean;
+  tiposInvestimento?: string[];
+  horizonte?: 'curto' | 'medio' | 'longo';
 }
 
 export interface UserProfile {
@@ -29,8 +60,26 @@ export interface UserProfile {
   localTrabalho?: string;
   rendaMensal?: number;
   cargo?: string;
+  empresaAtual?: string;
+  areaAtuacao?: string;
+  atividadesProfissionais?: string;
+  anosExperiencia?: string;
+  objetivoCarreira?: string;
+  habilidadesAtuais?: string;
+  curriculoTexto?: string;
+  softSkills?: SoftSkillsProfile;
+  financas?: FinanceProfile;
   avatar?: string;
-  onboardingCompleted?: boolean;
+
+  // Estado do setup inicial ─────────────────────────────────────────────
+  onboardingCompleted?: boolean;        // legado (ainda usado por alguns lugares)
+  careerProfileCompleted?: boolean;
+  softSkillsCompleted?: boolean;
+  financeProfileCompleted?: boolean;
+  developmentSetupCompleted?: boolean;
+  initialSetupCompleted?: boolean;      // gate final
+  currentSetupStep?: number;            // 1..5
+
   preferencias?: UserPreferences;
   ultimoWorkspace?: WorkspaceMode;
   criadoEm?: any;
@@ -96,7 +145,14 @@ async function ensureUserDocument(user: User): Promise<void> {
         email: user.email || '',
         avatar: user.photoURL || '',
         onboardingCompleted: false,
+        careerProfileCompleted: false,
+        softSkillsCompleted: false,
+        financeProfileCompleted: false,
+        developmentSetupCompleted: false,
+        initialSetupCompleted: false,
+        currentSetupStep: 1,
         preferencias: {
+          objetivos: [],
           workGoals: [],
           lifeGoals: [],
         },
@@ -265,7 +321,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     userProfile,
     loading,
-    needsOnboarding: !!user && !loading && !userProfile?.onboardingCompleted,
+    // Gate principal: o usuário só entra no app depois que initialSetupCompleted === true.
+    // Mantém compatibilidade com onboardingCompleted legado.
+    needsOnboarding:
+      !!user &&
+      !loading &&
+      !(userProfile?.initialSetupCompleted ?? userProfile?.onboardingCompleted),
     signup,
     login,
     logout,

@@ -41,6 +41,13 @@ export const COLLECTIONS = {
   VIAGENS: 'viagens',
   RECEITAS: 'receitas',
   CHAT_LOGS: 'chat_logs',
+  CARREIRA_ANALISES: 'carreira_analises',
+  // Gamification & Development
+  GAMIFICATION_PROFILES: 'gamification_profiles',
+  DEVELOPMENT_ITEMS: 'development_items',
+  USER_CHALLENGES: 'user_challenges',
+  USER_GOALS_CAREER: 'user_goals_career',
+  SAVED_JOBS: 'saved_jobs',
 } as const;
 
 export { analytics };

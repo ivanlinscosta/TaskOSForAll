@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
@@ -10,6 +10,7 @@ import { Badge } from './ui/badge';
 import { Bell, Zap, LogOut } from 'lucide-react';
 import { NotificationsHub } from './notifications-hub';
 import { QuickActions } from './quick-actions';
+import { ouvirNotificacoes, type Notificacao } from '../../services/notifications-service';
 import logoItau from '../../assets/itau.png';
 import logoFiap from '../../assets/fiap.png';
 
@@ -19,6 +20,16 @@ export function Header() {
   const { user: firebaseUser, userProfile, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return;
+    const unsub = ouvirNotificacoes(uid, (notifs: Notificacao[]) => {
+      setUnreadCount(notifs.filter((n) => !n.lida).length);
+    });
+    return unsub;
+  }, [firebaseUser?.uid]);
 
   // Dados vêm do Firestore (userProfile) com fallback para Firebase Auth
   const displayName = userProfile?.nome || firebaseUser?.displayName || 'Usuário';
@@ -121,12 +132,14 @@ export function Header() {
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <Bell className="w-4 h-4" />
-              <Badge
-                variant="destructive"
-                className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-              >
-                3
-              </Badge>
+              {unreadCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
             </Button>
 
             {/* User Avatar - dados do Firestore */}

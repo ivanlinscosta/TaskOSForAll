@@ -1,5 +1,5 @@
 /**
- * DualOS - System Constants
+ * TaskAll - System Constants
  * Constantes e configurações do sistema
  */
 
@@ -252,5 +252,5 @@ export const EXTERNAL_URLS = {
 // Versão do Sistema
 export const VERSION = '1.0.0';
 export const BUILD_DATE = '2026-03-31';
-export const SYSTEM_NAME = 'DualOS';
-export const SYSTEM_DESCRIPTION = 'Personal Operating System for Hybrid Management';
+export const SYSTEM_NAME = 'TaskAll';
+export const SYSTEM_DESCRIPTION = 'Sistema de Gestão Individual';

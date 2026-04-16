@@ -66,5 +66,34 @@ service cloud.firestore {
       allow read, update, delete: if isResourceOwner();
       allow create: if isOwnerField();
     }
+
+    match /carreira_analises/{userId} {
+      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ── Gamification & Development ───────────────────────────────────────────
+    match /gamification_profiles/{userId} {
+      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /development_items/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /user_challenges/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /user_goals_career/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /saved_jobs/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
   }
 }

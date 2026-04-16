@@ -1,4 +1,4 @@
-// DualOS - Type Definitions
+// TaskAll - Type Definitions
 
 export type ThemeMode = 'itau' | 'fiap';
 

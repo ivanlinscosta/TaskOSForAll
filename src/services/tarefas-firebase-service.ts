@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
 import { Task } from '../types';
+import { currentUidOrNull } from '../lib/require-auth';
 
 const COLLECTION_NAME = 'tarefas';
 
@@ -133,9 +134,12 @@ export async function deleteTask(taskId: string): Promise<void> {
  */
 export async function getTaskById(taskId: string): Promise<Task | null> {
   try {
+    const uid = currentUidOrNull();
     const docSnap = await getDoc(doc(db, COLLECTION_NAME, taskId));
     if (docSnap.exists()) {
-      return convertFirestoreToTask(docSnap.id, docSnap.data());
+      const data = docSnap.data() as any;
+      if (uid && data.userId && data.userId !== uid) return null;
+      return convertFirestoreToTask(docSnap.id, data);
     }
     return null;
   } catch (error) {
@@ -150,13 +154,18 @@ export async function getTaskById(taskId: string): Promise<Task | null> {
  */
 export async function listTasksByContext(context: 'fiap' | 'itau'): Promise<Task[]> {
   try {
-    // Query simples - filtra apenas por contexto, ordena no client-side
+    const uid = currentUidOrNull();
+    if (!uid) return [];
+    // Query simples - filtra por userId, ordena no client-side
     const q = query(
       collection(db, COLLECTION_NAME),
-      where('contexto', '==', context)
+      where('userId', '==', uid)
     );
     const snapshot = await getDocs(q);
-    const tasks = snapshot.docs.map((d) => convertFirestoreToTask(d.id, d.data()));
+    const tasks = snapshot.docs
+      .map((d) => ({ raw: d.data() as any, task: convertFirestoreToTask(d.id, d.data()) }))
+      .filter(({ raw }) => (raw.contexto || raw.context) === context)
+      .map(({ task }) => task);
     // Ordenar no client-side para evitar necessidade de índice composto
     tasks.sort((a, b) => {
       const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -166,10 +175,14 @@ export async function listTasksByContext(context: 'fiap' | 'itau'): Promise<Task
     return tasks;
   } catch (error) {
     console.error('Erro ao listar tarefas:', error);
-    // Se falhar, tentar sem filtro
+    // Se falhar, tentar sem filtro (ainda filtra por uid)
     try {
+      const uid = currentUidOrNull();
+      if (!uid) return [];
       const snapshot = await getDocs(collection(db, COLLECTION_NAME));
-      const allTasks = snapshot.docs.map((d) => convertFirestoreToTask(d.id, d.data()));
+      const allTasks = snapshot.docs
+        .filter((d) => (d.data() as any).userId === uid)
+        .map((d) => convertFirestoreToTask(d.id, d.data()));
       return allTasks.filter(t => t.context === context);
     } catch (err2) {
       console.error('Erro ao listar todas as tarefas:', err2);
@@ -268,7 +281,10 @@ export async function backlogTask(taskId: string): Promise<void> {
  */
 export async function listAllTasks(): Promise<Task[]> {
   try {
-    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const uid = currentUidOrNull();
+    if (!uid) return [];
+    const q = query(collection(db, COLLECTION_NAME), where('userId', '==', uid));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => convertFirestoreToTask(d.id, d.data()));
   } catch (error) {
     console.error('Erro ao listar todas as tarefas:', error);

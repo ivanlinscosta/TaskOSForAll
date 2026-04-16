@@ -4,8 +4,12 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   BarChart3,
+  CreditCard,
+  Landmark,
   Loader,
+  Pencil,
   Plane,
+  Search,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -34,7 +38,12 @@ import { useAuth } from '../../../lib/auth-context';
 import { createOwnedRecord, listWorkspaceEntity } from '../../../services/forall-data-service';
 import { COLLECTIONS } from '../../../lib/firebase-config';
 import { CATEGORIAS_ORCAMENTO_LABELS, listarViagens } from '../../../services/viagens-service';
+import { listarCustos, deletarCusto } from '../../../services/custos-service';
 import { toast } from 'sonner';
+import { CartaoTab } from './CartaoTab';
+import { ImportarFaturaDialog } from '../../components/ImportarFaturaDialog';
+import { ImportarExtratoDialog } from '../../components/ImportarExtratoDialog';
+import { listarReceitas } from '../../../services/receitas-service';
 
 const COLORS = ['#16A34A', '#EF4444', '#F59E0B', '#8B5CF6', '#3B82F6', '#EC4899'];
 
@@ -42,6 +51,20 @@ function monthLabel(value: any) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Sem mês';
   return date.toLocaleDateString('pt-BR', { month: 'short' });
+}
+
+/** Retorna 'YYYY-MM' para o filtro de mês. */
+function monthKey(value: any): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** 'YYYY-MM' → rótulo legível em pt-BR (ex: 'mar/25'). */
+function monthLabelFromKey(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, (m ?? 1) - 1, 1);
+  return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
 function toCurrency(value: number) {
@@ -53,16 +76,35 @@ type ExpenseType = 'fixo' | 'variavel' | 'assinatura';
 export function ForAllFinancePage() {
   const navigate = useNavigate();
   const { workspace = 'life' } = useParams();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, updateUserProfileData } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [tab, setTab] = useState<'visao' | 'despesas' | 'receitas'>('visao');
+  const [tab, setTab] = useState<'visao' | 'despesas' | 'receitas' | 'cartao'>('visao');
   const [expenses, setExpenses] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<any[]>([]);
   const [trips, setTrips] = useState<any[]>([]);
+  const [custos, setCustos] = useState<any[]>([]);
+  const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
+  const [importarExtratoOpen, setImportarExtratoOpen] = useState(false);
 
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [revenueDialog, setRevenueDialog] = useState(false);
+
+  // Mês selecionado no filtro ('all' = todos, caso contrário 'YYYY-MM')
+  const [monthFilter, setMonthFilter] = useState<string>('all');
+
+  // Busca nas abas despesas/receitas
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Edição do perfil financeiro
+  const [perfilDialog, setPerfilDialog] = useState(false);
+  const [perfilForm, setPerfilForm] = useState({
+    rendaMensal: '',
+    reservaEmergencia: '',
+    totalInvestido: '',
+    perfilInvestidor: 'indefinido' as 'conservador' | 'moderado' | 'arrojado' | 'indefinido',
+  });
+  const [savingPerfil, setSavingPerfil] = useState(false);
 
   const [expenseForm, setExpenseForm] = useState({
     descricao: '',
@@ -88,9 +130,10 @@ export function ForAllFinancePage() {
     if (!user?.uid) return;
     try {
       setIsLoading(true);
-      const [financeData, tripData] = await Promise.all([
+      const [financeData, tripData, custosData] = await Promise.all([
         listWorkspaceEntity(user.uid, 'finance', workspace === 'work' ? 'work' : 'life'),
         listarViagens(),
+        listarCustos(),
       ]);
 
       const expenseItems = financeData.filter((item) => item.collectionName === COLLECTIONS.CUSTOS);
@@ -99,8 +142,60 @@ export function ForAllFinancePage() {
       setExpenses(expenseItems);
       setRevenues(revenueItems);
       setTrips(tripData);
+      setCustos(custosData);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteFatura = async (ids: string[], _key: string) => {
+    try {
+      await Promise.all(ids.map(id => deletarCusto(id)));
+      setCustos(prev => prev.filter(c => !ids.includes(c.id)));
+      toast.success('Fatura excluída');
+    } catch {
+      toast.error('Erro ao excluir fatura');
+    }
+  };
+
+  // Sincroniza o form de edição do perfil com o userProfile atual
+  useEffect(() => {
+    const fn = userProfile?.financas;
+    setPerfilForm({
+      rendaMensal:         fn?.rendaMensal != null ? String(fn.rendaMensal) : '',
+      reservaEmergencia:   fn?.reservaEmergencia != null ? String(fn.reservaEmergencia) : '',
+      totalInvestido:      fn?.totalInvestido != null ? String(fn.totalInvestido) : '',
+      perfilInvestidor:    fn?.perfilInvestidor ?? 'indefinido',
+    });
+  }, [userProfile?.financas?.rendaMensal, userProfile?.financas?.reservaEmergencia, userProfile?.financas?.totalInvestido, userProfile?.financas?.perfilInvestidor]);
+
+  const handleSavePerfil = async () => {
+    try {
+      setSavingPerfil(true);
+      const renda = Number(perfilForm.rendaMensal.replace(',', '.')) || 0;
+      const reserva = perfilForm.reservaEmergencia === '' ? undefined : Number(perfilForm.reservaEmergencia.replace(',', '.')) || 0;
+      const invest = perfilForm.totalInvestido === '' ? undefined : Number(perfilForm.totalInvestido.replace(',', '.')) || 0;
+
+      const prevFn = userProfile?.financas;
+      await updateUserProfileData({
+        financas: {
+          rendaMensal: renda,
+          reservaEmergencia: reserva,
+          totalInvestido: invest,
+          perfilInvestidor: perfilForm.perfilInvestidor,
+          objetivosFinanceiros: prevFn?.objetivosFinanceiros ?? [],
+          jaInveste: prevFn?.jaInveste,
+          tiposInvestimento: prevFn?.tiposInvestimento,
+          horizonte: prevFn?.horizonte,
+        },
+      });
+      toast.success('Perfil financeiro atualizado');
+      setPerfilDialog(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao salvar perfil financeiro');
+    } finally {
+      setSavingPerfil(false);
     }
   };
 
@@ -231,19 +326,107 @@ export function ForAllFinancePage() {
     });
   }, [trips]);
 
-  const allExpenses = useMemo(() => [...expenses, ...travelExpenses], [expenses, travelExpenses]);
+  // Normaliza custos (collection CUSTOS, inclui faturas de cartão importadas)
+  // para o mesmo shape das despesas manuais, mapeando tipo 'fixa' → 'fixo'.
+  const normalizedCustos = useMemo(() => {
+    return custos.map((c) => ({
+      id: c.id,
+      collectionName: COLLECTIONS.CUSTOS,
+      descricao: c.descricao,
+      valor: Number(c.valor || 0),
+      categoria: c.categoria,
+      tipoGasto: c.tipo === 'fixa' ? 'fixo' : c.tipo, // 'fixa' → 'fixo' | 'variavel' | 'assinatura'
+      data: c.data,
+      origem: c.origem,
+      nomeCartao: c.nomeCartao,
+      faturaId: c.faturaId,
+      _isCartao: c.origem === 'cartao',
+    }));
+  }, [custos]);
 
-  const travelTotal = travelExpenses.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const revenueTotal = revenues.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  // Dedupe: listWorkspaceEntity pode retornar docs da collection CUSTOS
+  // que também vêm por listarCustos(). Preferimos custos (fonte mais rica).
+  const mergedManualExpenses = useMemo(() => {
+    const custoIds = new Set(custos.map((c) => c.id).filter(Boolean));
+    const extras = expenses.filter((e) => !custoIds.has(e.id));
+    return [...normalizedCustos, ...extras];
+  }, [normalizedCustos, expenses, custos]);
+
+  const allExpensesUnfiltered = useMemo(
+    () => [...mergedManualExpenses, ...travelExpenses],
+    [mergedManualExpenses, travelExpenses]
+  );
+
+  // Lista de meses disponíveis (union receitas + despesas), ordenada desc
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    [...allExpensesUnfiltered, ...revenues].forEach((i) => {
+      const k = monthKey(i.data);
+      if (k) set.add(k);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [allExpensesUnfiltered, revenues]);
+
+  // Aplica filtro de mês
+  const inSelectedMonth = (item: any) =>
+    monthFilter === 'all' || monthKey(item.data) === monthFilter;
+
+  const allExpenses = useMemo(
+    () => allExpensesUnfiltered.filter(inSelectedMonth),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allExpensesUnfiltered, monthFilter]
+  );
+  const revenuesFiltered = useMemo(
+    () => revenues.filter(inSelectedMonth),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [revenues, monthFilter]
+  );
+  const mergedManualFiltered = useMemo(
+    () => mergedManualExpenses.filter(inSelectedMonth),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mergedManualExpenses, monthFilter]
+  );
+  const travelFiltered = useMemo(
+    () => travelExpenses.filter(inSelectedMonth),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [travelExpenses, monthFilter]
+  );
+
+  const travelTotal = travelFiltered.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const revenueTotal = revenuesFiltered.reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const expenseTotal = allExpenses.reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const balance = revenueTotal - expenseTotal;
-  const fixedTotal = expenses.filter((item) => item.tipoGasto === 'fixo').reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const subscriptionTotal = expenses.filter((item) => item.tipoGasto === 'assinatura').reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const variableTotal = expenses.filter((item) => item.tipoGasto === 'variavel').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const fixedTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'fixo').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const subscriptionTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'assinatura').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const variableTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'variavel').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+  // Gasto médio mensal — calculado dinamicamente a partir do histórico completo
+  const gastoMedioMensal = useMemo(() => {
+    const byMonth = new Map<string, number>();
+    allExpensesUnfiltered.forEach((i) => {
+      const k = monthKey(i.data);
+      if (!k) return;
+      byMonth.set(k, (byMonth.get(k) || 0) + Number(i.valor || 0));
+    });
+    if (byMonth.size === 0) return 0;
+    const total = [...byMonth.values()].reduce((a, b) => a + b, 0);
+    return total / byMonth.size;
+  }, [allExpensesUnfiltered]);
+
+  // Busca nas listas (tabs despesas/receitas)
+  const matchesSearch = (item: any) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      String(item.descricao || '').toLowerCase().includes(q) ||
+      String(item.categoria || '').toLowerCase().includes(q) ||
+      String(item.nomeCartao || '').toLowerCase().includes(q)
+    );
+  };
 
   const chartData = useMemo(() => {
     const monthMap: Record<string, { mes: string; receitas: number; despesas: number }> = {};
-    [...revenues, ...allExpenses].forEach((item) => {
+    [...revenuesFiltered, ...allExpenses].forEach((item) => {
       const month = monthLabel(item.data);
       if (!monthMap[month]) {
         monthMap[month] = { mes: month, receitas: 0, despesas: 0 };
@@ -255,7 +438,7 @@ export function ForAllFinancePage() {
       }
     });
     return Object.values(monthMap);
-  }, [revenues, allExpenses]);
+  }, [revenuesFiltered, allExpenses]);
 
   const expensePie = useMemo(() => {
     const group: Record<string, number> = {};
@@ -290,10 +473,18 @@ export function ForAllFinancePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" className="gap-2" onClick={() => navigate(`/chat?action=gasto&workspace=${workspace}`)}>
             <Sparkles className="h-4 w-4" />
             Chat guiado
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setImportarFaturaOpen(true)}>
+            <CreditCard className="h-4 w-4" />
+            Importar Fatura
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setImportarExtratoOpen(true)}>
+            <Landmark className="h-4 w-4" />
+            Importar Extrato
           </Button>
           <Button className="gap-2 bg-green-600 text-white hover:bg-green-700" onClick={() => setRevenueDialog(true)}>
             <ArrowUpCircle className="h-4 w-4" />
@@ -304,6 +495,85 @@ export function ForAllFinancePage() {
             Despesa
           </Button>
         </div>
+      </div>
+
+      {/* ── Perfil financeiro (editável) ── */}
+      <Card className="border-l-4" style={{ borderLeftColor: '#10B981' }}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4 text-[#10B981]" /> Seu perfil financeiro
+            </CardTitle>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setPerfilDialog(true)}>
+              <Pencil className="h-3.5 w-3.5" /> Editar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Renda mensal</p>
+            <p className="text-lg font-bold text-[var(--theme-foreground)]">
+              {toCurrency(userProfile?.financas?.rendaMensal || 0)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Gasto médio mensal</p>
+            <p className="text-lg font-bold text-[var(--theme-foreground)]">{toCurrency(gastoMedioMensal)}</p>
+            <p className="text-[10px] text-[var(--theme-muted-foreground)]">calculado</p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Reserva emergencial</p>
+            <p className="text-lg font-bold text-[var(--theme-foreground)]">
+              {toCurrency(userProfile?.financas?.reservaEmergencia || 0)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Investimentos</p>
+            <p className="text-lg font-bold text-[var(--theme-foreground)]">
+              {toCurrency(userProfile?.financas?.totalInvestido || 0)}
+            </p>
+            {userProfile?.financas?.perfilInvestidor && (
+              <p className="text-[10px] text-[var(--theme-muted-foreground)] capitalize">
+                perfil {userProfile.financas.perfilInvestidor}
+              </p>
+            )}
+          </div>
+          {userProfile?.financas?.objetivosFinanceiros?.length ? (
+            <div className="col-span-2 md:col-span-4">
+              <p className="text-xs text-[var(--theme-muted-foreground)] mb-1.5">Objetivos financeiros</p>
+              <div className="flex flex-wrap gap-1.5">
+                {userProfile.financas.objetivosFinanceiros.map((o) => (
+                  <Badge key={o} className="border-none text-xs" style={{ background: '#10B98115', color: '#10B981' }}>
+                    🎯 {o}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {/* ── Filtro de mês ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-sm">Filtrar por mês:</Label>
+        <Select value={monthFilter} onValueChange={setMonthFilter}>
+          <SelectTrigger className="h-9 w-[220px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os meses</SelectItem>
+            {availableMonths.map((k) => (
+              <SelectItem key={k} value={k}>
+                {monthLabelFromKey(k)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {monthFilter !== 'all' && (
+          <Button variant="ghost" size="sm" className="h-9" onClick={() => setMonthFilter('all')}>
+            Limpar
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -319,11 +589,12 @@ export function ForAllFinancePage() {
         <Card><CardContent className="p-5"><p className="text-sm text-red-500">Variáveis</p><p className="mt-2 text-3xl font-bold">{toCurrency(variableTotal)}</p><p className="text-sm text-[var(--theme-muted-foreground)]">Gastos pontuais e do mês atual</p></CardContent></Card>
       </div>
 
-      <div className="grid grid-cols-3 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
+      <div className="grid grid-cols-4 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
         {[
           { key: 'visao', label: 'Visão Geral' },
           { key: 'despesas', label: 'Despesas' },
           { key: 'receitas', label: 'Receitas' },
+          { key: 'cartao', label: 'Cartão' },
         ].map((item) => (
           <button
             key={item.key}
@@ -337,7 +608,15 @@ export function ForAllFinancePage() {
         ))}
       </div>
 
-      {tab === 'visao' ? (
+      {tab === 'cartao' && (
+        <CartaoTab
+          custos={custos}
+          onImportar={() => setImportarFaturaOpen(true)}
+          onDeleteFatura={handleDeleteFatura}
+        />
+      )}
+
+      {tab !== 'cartao' && (tab === 'visao' ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-[var(--theme-accent)]" />Receitas vs despesas</CardTitle></CardHeader>
@@ -385,8 +664,18 @@ export function ForAllFinancePage() {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {(tab === 'despesas' ? allExpenses : revenues).map((item) => (
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-muted-foreground)]" />
+            <Input
+              placeholder={tab === 'despesas' ? 'Buscar despesa por descrição, categoria ou cartão…' : 'Buscar receita por descrição ou categoria…'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+          {(tab === 'despesas' ? allExpenses : revenuesFiltered).filter(matchesSearch).map((item) => (
             <Card key={item.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
@@ -406,6 +695,10 @@ export function ForAllFinancePage() {
                 <div className="flex items-center gap-2">
                   {tab === 'despesas' && item._isTravel
                     ? <Badge variant="outline" className="border-violet-300 text-violet-600">Viagem</Badge>
+                    : tab === 'despesas' && item._isCartao
+                    ? <Badge variant="outline" className="border-blue-300 text-blue-600">
+                        Cartão{item.nomeCartao ? ` • ${item.nomeCartao}` : ''}
+                      </Badge>
                     : tab === 'despesas' && item.tipoGasto
                     ? <Badge variant="outline">{item.tipoGasto}</Badge>
                     : null}
@@ -417,8 +710,116 @@ export function ForAllFinancePage() {
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
-      )}
+      ))}
+
+      {/* ── Dialog editar perfil financeiro ── */}
+      <Dialog open={perfilDialog} onOpenChange={setPerfilDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Editar perfil financeiro</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Renda mensal (R$)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={perfilForm.rendaMensal}
+                onChange={(e) => setPerfilForm((p) => ({ ...p, rendaMensal: e.target.value }))}
+                placeholder="Ex: 5000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Reserva emergencial (R$)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={perfilForm.reservaEmergencia}
+                onChange={(e) => setPerfilForm((p) => ({ ...p, reservaEmergencia: e.target.value }))}
+                placeholder="Ex: 15000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total em investimentos (R$)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={perfilForm.totalInvestido}
+                onChange={(e) => setPerfilForm((p) => ({ ...p, totalInvestido: e.target.value }))}
+                placeholder="Ex: 25000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Perfil investidor</Label>
+              <Select
+                value={perfilForm.perfilInvestidor}
+                onValueChange={(v) => setPerfilForm((p) => ({ ...p, perfilInvestidor: v as typeof p.perfilInvestidor }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="indefinido">Indefinido</SelectItem>
+                  <SelectItem value="conservador">Conservador</SelectItem>
+                  <SelectItem value="moderado">Moderado</SelectItem>
+                  <SelectItem value="arrojado">Arrojado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">
+              💡 O <strong>gasto médio mensal</strong> é calculado automaticamente a partir das suas despesas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPerfilDialog(false)}>Cancelar</Button>
+            <Button
+              className="bg-[#10B981] text-white hover:bg-[#059669]"
+              onClick={handleSavePerfil}
+              disabled={savingPerfil}
+            >
+              {savingPerfil ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ImportarFaturaDialog
+        open={importarFaturaOpen}
+        onOpenChange={setImportarFaturaOpen}
+        onImported={async () => {
+          const updated = await listarCustos();
+          setCustos(updated);
+        }}
+      />
+
+      <ImportarExtratoDialog
+        open={importarExtratoOpen}
+        onOpenChange={setImportarExtratoOpen}
+        onImported={async () => {
+          // Extrato pode gerar despesas (CUSTOS) e receitas (RECEITAS).
+          // Recarregamos ambas — as receitas vêm via listWorkspaceEntity no loadData,
+          // mas para UX imediata adicionamos uma recarga dirigida.
+          const [updatedCustos, updatedReceitas] = await Promise.all([
+            listarCustos(),
+            listarReceitas(),
+          ]);
+          setCustos(updatedCustos);
+          // Receitas no estado usam o shape do listWorkspaceEntity. Normalizamos.
+          setRevenues((prev) => {
+            const existingIds = new Set(prev.map((r) => r.id));
+            const extras = updatedReceitas
+              .filter((r) => r.id && !existingIds.has(r.id))
+              .map((r) => ({
+                id: r.id,
+                collectionName: COLLECTIONS.RECEITAS,
+                descricao: r.descricao,
+                valor: r.valor,
+                categoria: r.categoria,
+                data: r.data,
+                natureza: 'receita',
+              }));
+            return [...extras, ...prev];
+          });
+        }}
+      />
 
       <Dialog open={expenseDialog} onOpenChange={setExpenseDialog}>
         <DialogContent className="sm:max-w-xl">

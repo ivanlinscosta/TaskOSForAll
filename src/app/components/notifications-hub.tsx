@@ -31,14 +31,18 @@ export function NotificationsHub({ onClose, userId }: Props) {
   const unreadCount = notifications.filter(n => !n.lida).length;
 
   const getTipoIcon = (tipo: string) => {
-    const icons = {
+    const icons: Record<string, string> = {
       tarefa: '✓',
       reuniao: '📅',
       aula: '📚',
       feedback: '💬',
-      sistema: '⚙️'
+      sistema: '⚙️',
+      despesa: '💸',
+      receita: '💰',
+      viagem: '✈️',
+      sugestao_ia: '🤖',
     };
-    return icons[tipo as keyof typeof icons] || '•';
+    return icons[tipo] || '•';
   };
 
   return (
@@ -86,7 +90,7 @@ export function NotificationsHub({ onClose, userId }: Props) {
                 key={n.id}
                 className={cn(
                   "p-3 rounded-lg mb-2",
-                  !n.lida && "bg-blue-50"
+                  !n.lida && "bg-[var(--theme-accent)]/5"
                 )}
               >
                 <div className="flex gap-3">

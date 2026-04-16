@@ -1,0 +1,59 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.faturaParserFlow = exports.faturaOutputSchema = exports.faturaInputSchema = void 0;
+const zod_1 = require("zod");
+const genkit_1 = require("../genkit");
+const CategoriaSchema = zod_1.z.enum([
+    'alimentacao', 'transporte', 'lazer', 'saude',
+    'moradia', 'educacao', 'vestuario', 'outros',
+]);
+const TransacaoSchema = zod_1.z.object({
+    data: zod_1.z.string(),
+    descricao: zod_1.z.string(),
+    categoria: CategoriaSchema,
+    valor: zod_1.z.number(),
+    parcelaAtual: zod_1.z.number().nullable(),
+    parcelaTotal: zod_1.z.number().nullable(),
+    isInternacional: zod_1.z.boolean(),
+});
+exports.faturaInputSchema = zod_1.z.object({
+    textoFatura: zod_1.z.string().min(1),
+});
+exports.faturaOutputSchema = zod_1.z.object({
+    titular: zod_1.z.string(),
+    totalFatura: zod_1.z.number(),
+    vencimento: zod_1.z.string(),
+    transacoes: zod_1.z.array(TransacaoSchema),
+});
+exports.faturaParserFlow = genkit_1.ai.defineFlow({
+    name: 'faturaParserFlow',
+    inputSchema: exports.faturaInputSchema,
+    outputSchema: exports.faturaOutputSchema,
+}, async ({ textoFatura }) => {
+    const response = await genkit_1.ai.generate({
+        prompt: `Extraia TODAS as transações de compra desta fatura de cartão de crédito.
+
+IGNORE: estornos, pagamentos, boletos, PIX, anuidade, encargos, IOF, "próximas faturas".
+INCLUA: compras em lojas, sites, apps, assinaturas, serviços.
+
+Regras:
+- Categorias válidas: alimentacao, transporte, lazer, saude, moradia, educacao, vestuario, outros
+- Campo "data": SEMPRE no formato DD/MM (sem ano). Ex: "15/03", "02/11"
+- Campo "vencimento": SEMPRE no formato DD/MM/AAAA. Ex: "10/04/2026"
+- Parcela "XX/YY" → parcelaAtual=XX, parcelaTotal=YY. Sem parcela → null para ambos
+- Limpe nomes de estabelecimentos: "MERCADOLIVRE*3PROD"→"Mercado Livre", "AMAZONMKTPLC*X"→"Amazon", "PAG*JoseSilva"→"Pag José Silva", "IFOOD*IFOOD"→"iFood"
+- Valores SEMPRE positivos em reais: "298,31"→298.31, "1.234,56"→1234.56
+- isInternacional: true se moeda estrangeira (USD, EUR, etc.)
+- titular: primeiro nome do titular do cartão
+- totalFatura: valor total da fatura (número positivo)
+
+Fatura:
+${textoFatura}`,
+        output: { schema: exports.faturaOutputSchema },
+    });
+    if (!response.output) {
+        throw new Error('Não foi possível extrair os dados da fatura. Verifique o arquivo.');
+    }
+    return response.output;
+});
+//# sourceMappingURL=fatura-parser-flow.js.map
