@@ -13,9 +13,10 @@ import { addMonths, format, getMonth, getYear, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as custosService from '../../../services/custos-service';
 import { InsightsPanel } from '../../components/InsightsPanel';
+import { formatCurrency } from '../../../lib/utils';
 
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+const fmt = formatCurrency;
 const MERCHANT_COLORS = ['#0EA5E9', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'];
 
 function parseParcela(desc: string): { atual: number; total: number } | null {
@@ -390,7 +391,7 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                   <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'var(--theme-muted-foreground)' }} />
                   <YAxis tick={{ fontSize: 10, fill: 'var(--theme-muted-foreground)' }}
-                    tickFormatter={v => `R$${(v / 1000).toFixed(1)}k`} />
+                    tickFormatter={v => formatCurrency(v)} />
                   <Tooltip content={<TooltipBRL />} />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                   {merchantDistribution.merchants.map((merchant, idx) => (
@@ -504,7 +505,7 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }}
-                  tickFormatter={v => `R$${(v / 1000).toFixed(1)}k`} />
+                  tickFormatter={v => formatCurrency(v)} />
                 <Tooltip content={<TooltipBRL />} />
                 <Bar dataKey="Parcelas" fill="#8B5CF6" radius={[4, 4, 0, 0]} name="Parcelas futuras" />
               </BarChart>

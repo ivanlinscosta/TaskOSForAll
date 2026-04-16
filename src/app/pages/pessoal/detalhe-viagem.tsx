@@ -22,6 +22,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as viagensService from '../../../services/viagens-service';
 import * as custosService from '../../../services/custos-service';
+import { formatCurrency } from '../../../lib/utils';
 
 const STATUS_LABELS: Record<string, string> = {
   planejada: 'Planejada',
@@ -286,7 +287,7 @@ export function DetalheViagem() {
                         </p>
                       </div>
                       <span className="font-bold text-red-500">
-                        - R$ {c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        - {formatCurrency(c.valor)}
                       </span>
                     </div>
                   ))}
@@ -307,13 +308,13 @@ export function DetalheViagem() {
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-[var(--theme-muted-foreground)]">Orçamento</span>
                   <span className="font-bold text-[var(--theme-foreground)]">
-                    R$ {viagem.orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(viagem.orcamento)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-[var(--theme-muted-foreground)]">Gasto</span>
                   <span className="font-bold text-red-500">
-                    R$ {totalCustos.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(totalCustos)}
                   </span>
                 </div>
                 <div className="h-3 w-full rounded-full bg-[var(--theme-muted)]">
@@ -341,7 +342,7 @@ export function DetalheViagem() {
                   className="text-xl font-bold"
                   style={{ color: saldoRestante >= 0 ? '#059669' : '#EF4444' }}
                 >
-                  R$ {Math.abs(saldoRestante).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {formatCurrency(Math.abs(saldoRestante))}
                   {saldoRestante < 0 && ' (estourado)'}
                 </p>
               </div>

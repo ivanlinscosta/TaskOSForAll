@@ -13,6 +13,7 @@ import { AIProcessingIndicator } from './AIProcessingIndicator';
 import * as faturaService from '../../services/fatura-cartao-service';
 import * as custosService from '../../services/custos-service';
 import { CATEGORIAS_LABELS, CATEGORIAS_CORES } from '../../services/custos-service';
+import { formatCurrency } from '../../lib/utils';
 
 type Step = 'upload' | 'loading' | 'review';
 
@@ -22,8 +23,7 @@ interface TransacaoUI extends faturaService.FaturaTransacao {
   tipo: custosService.TipoCusto;
 }
 
-const fmt = (v: number) =>
-  `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+const fmt = formatCurrency;
 
 function parseDateFromInvoice(dataStr: string, vencimento: string): Date {
   // Tentar extrair ano do vencimento (DD/MM/AAAA)

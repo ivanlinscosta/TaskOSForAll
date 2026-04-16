@@ -16,6 +16,7 @@ import {
 import { db } from '../lib/firebase-config';
 import { requireUid, currentUidOrNull } from '../lib/require-auth';
 import { notificarSilencioso } from './notifications-service';
+import { formatCurrency } from '../lib/utils';
 
 export type CategoriaReceita =
   | 'salario'
@@ -61,7 +62,7 @@ export async function criarReceita(receita: Omit<Receita, 'id' | 'criadoEm'>): P
   });
   notificarSilencioso({
     titulo: 'Nova receita registrada',
-    mensagem: `${receita.descricao} — R$ ${receita.valor.toFixed(2)}`,
+    mensagem: `${receita.descricao} — ${formatCurrency(receita.valor)}`,
     tipo: 'receita',
     lida: false,
     contexto: 'pessoal',

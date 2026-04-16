@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as viagensService from '../../../services/viagens-service';
+import { formatCurrency } from '../../../lib/utils';
 import { PlanViagemIADialog } from '../../components/PlanViagemIADialog';
 import type { ViagemPlanResult } from '../../../services/viagem-ai-service';
 
@@ -228,7 +229,7 @@ export function Viagens() {
                         <Wallet className="h-3.5 w-3.5" /> Orçamento
                       </span>
                       <span className="font-medium text-[var(--theme-foreground)]">
-                        R$ {viagem.orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {formatCurrency(viagem.orcamento)}
                       </span>
                     </div>
                     {viagem.gastoReal !== undefined && viagem.gastoReal > 0 && (
@@ -241,7 +242,7 @@ export function Viagens() {
                               color: percentualGasto >= 90 ? '#EF4444' : 'var(--theme-accent)',
                             }}
                           >
-                            R$ {viagem.gastoReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {formatCurrency(viagem.gastoReal)}
                           </span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-[var(--theme-muted)]">

@@ -5,12 +5,15 @@ import {
   ArrowUpCircle,
   BarChart3,
   CreditCard,
+  Filter,
   Landmark,
   Loader,
   Pencil,
   Plane,
+  RefreshCw,
   Search,
   Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
   Wallet,
@@ -43,7 +46,8 @@ import { toast } from 'sonner';
 import { CartaoTab } from './CartaoTab';
 import { ImportarFaturaDialog } from '../../components/ImportarFaturaDialog';
 import { ImportarExtratoDialog } from '../../components/ImportarExtratoDialog';
-import { listarReceitas } from '../../../services/receitas-service';
+import { listarReceitas, deletarReceita } from '../../../services/receitas-service';
+import { formatCurrency } from '../../../lib/utils';
 
 const COLORS = ['#16A34A', '#EF4444', '#F59E0B', '#8B5CF6', '#3B82F6', '#EC4899'];
 
@@ -67,9 +71,7 @@ function monthLabelFromKey(key: string): string {
   return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
-function toCurrency(value: number) {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+const toCurrency = formatCurrency;
 
 type ExpenseType = 'fixo' | 'variavel' | 'assinatura';
 
@@ -120,7 +122,11 @@ export function ForAllFinancePage() {
     valor: '',
     categoria: 'salario',
     data: new Date().toISOString().split('T')[0],
+    recorrente: false,
   });
+
+  // Filtro de categoria na aba de despesas
+  const [despesaFilter, setDespesaFilter] = useState<string>('todas');
 
   useEffect(() => {
     void loadData();
@@ -155,6 +161,29 @@ export function ForAllFinancePage() {
       toast.success('Fatura excluída');
     } catch {
       toast.error('Erro ao excluir fatura');
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm('Excluir esta despesa?')) return;
+    try {
+      await deletarCusto(id);
+      setCustos(prev => prev.filter(c => c.id !== id));
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      toast.success('Despesa excluída');
+    } catch {
+      toast.error('Erro ao excluir despesa');
+    }
+  };
+
+  const handleDeleteRevenue = async (id: string) => {
+    if (!confirm('Excluir esta receita?')) return;
+    try {
+      await deletarReceita(id);
+      setRevenues(prev => prev.filter(r => r.id !== id));
+      toast.success('Receita excluída');
+    } catch {
+      toast.error('Erro ao excluir receita');
     }
   };
 
@@ -211,7 +240,7 @@ export function ForAllFinancePage() {
     }
 
     try {
-      const id = await createOwnedRecord(COLLECTIONS.CUSTOS, {
+      const baseRecord = {
         ownerId: user.uid,
         ownerName: userProfile?.nome || user.displayName || '',
         ownerGoals:
@@ -225,14 +254,36 @@ export function ForAllFinancePage() {
         tipoGasto: expenseForm.tipoGasto,
         tipo: workspace === 'work' ? 'trabalho' : 'pessoal',
         natureza: 'despesa',
-        data: expenseForm.data,
         source: 'manual_form',
-      });
+      };
 
-      setExpenses((prev) => [
-        { id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, valor },
-        ...prev,
-      ]);
+      const isRecorrente = expenseForm.tipoGasto === 'fixo' || expenseForm.tipoGasto === 'assinatura';
+
+      if (isRecorrente) {
+        // Replicar custos fixos/assinaturas para todos os meses restantes do ano
+        const baseDate = new Date(expenseForm.data);
+        const startMonth = baseDate.getMonth();
+        const year = baseDate.getFullYear();
+        const day = baseDate.getDate();
+        const newItems: any[] = [];
+
+        for (let m = startMonth; m < 12; m++) {
+          const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
+          const dateStr = d.toISOString().split('T')[0];
+          const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: dateStr });
+          newItems.push({ id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, valor, data: dateStr });
+        }
+        setExpenses((prev) => [...newItems, ...prev]);
+        toast.success(`Despesa ${expenseForm.tipoGasto === 'fixo' ? 'fixa' : 'assinatura'} replicada para ${newItems.length} meses!`);
+      } else {
+        const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: expenseForm.data });
+        setExpenses((prev) => [
+          { id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, valor },
+          ...prev,
+        ]);
+        toast.success('Despesa registrada');
+      }
+
       setExpenseDialog(false);
       setExpenseForm({
         descricao: '',
@@ -242,7 +293,6 @@ export function ForAllFinancePage() {
         natureza: 'despesa',
         data: new Date().toISOString().split('T')[0],
       });
-      toast.success('Despesa registrada');
     } catch (error) {
       console.error(error);
       toast.error('Erro ao salvar despesa');
@@ -261,7 +311,7 @@ export function ForAllFinancePage() {
     }
 
     try {
-      const id = await createOwnedRecord(COLLECTIONS.RECEITAS, {
+      const baseRecord = {
         ownerId: user.uid,
         ownerName: userProfile?.nome || user.displayName || '',
         ownerGoals:
@@ -273,22 +323,43 @@ export function ForAllFinancePage() {
         valor,
         categoria: revenueForm.categoria,
         natureza: 'receita',
-        data: revenueForm.data,
+        recorrente: revenueForm.recorrente,
         source: 'manual_form',
-      });
+      };
 
-      setRevenues((prev) => [
-        { id, collectionName: COLLECTIONS.RECEITAS, ...revenueForm, valor },
-        ...prev,
-      ]);
+      if (revenueForm.recorrente) {
+        // Replicar para todos os meses restantes do ano
+        const baseDate = new Date(revenueForm.data);
+        const startMonth = baseDate.getMonth();
+        const year = baseDate.getFullYear();
+        const day = baseDate.getDate();
+        const newItems: any[] = [];
+
+        for (let m = startMonth; m < 12; m++) {
+          const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
+          const dateStr = d.toISOString().split('T')[0];
+          const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: dateStr });
+          newItems.push({ id, collectionName: COLLECTIONS.RECEITAS, ...revenueForm, valor, data: dateStr });
+        }
+        setRevenues((prev) => [...newItems, ...prev]);
+        toast.success(`Receita recorrente criada para ${newItems.length} meses!`);
+      } else {
+        const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: revenueForm.data });
+        setRevenues((prev) => [
+          { id, collectionName: COLLECTIONS.RECEITAS, ...revenueForm, valor },
+          ...prev,
+        ]);
+        toast.success('Receita registrada');
+      }
+
       setRevenueDialog(false);
       setRevenueForm({
         descricao: '',
         valor: '',
         categoria: 'salario',
         data: new Date().toISOString().split('T')[0],
+        recorrente: false,
       });
-      toast.success('Receita registrada');
     } catch (error) {
       console.error(error);
       toast.error('Erro ao salvar receita');
@@ -577,16 +648,16 @@ export function ForAllFinancePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Card><CardContent className="p-5"><div className="flex items-center justify-between"><div><p className="text-sm text-[var(--theme-muted-foreground)]">Receitas</p><p className="mt-2 text-3xl font-bold text-green-600">{toCurrency(revenueTotal)}</p></div><div className="rounded-2xl bg-green-100 p-3 text-green-600"><TrendingUp className="h-6 w-6" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center justify-between"><div><p className="text-sm text-[var(--theme-muted-foreground)]">Despesas</p><p className="mt-2 text-3xl font-bold text-red-500">{toCurrency(expenseTotal)}</p><p className="mt-1 text-xs text-[var(--theme-muted-foreground)]">incl. viagens</p></div><div className="rounded-2xl bg-red-100 p-3 text-red-500"><TrendingDown className="h-6 w-6" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center justify-between"><div><p className="text-sm text-[var(--theme-muted-foreground)]">Saldo</p><p className={`mt-2 text-3xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-500'}`}>{toCurrency(balance)}</p></div><div className="rounded-2xl bg-slate-100 p-3 text-slate-600"><Wallet className="h-6 w-6" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-5"><div className="flex items-center justify-between"><div><p className="text-sm text-[var(--theme-muted-foreground)]">Viagens</p><p className="mt-2 text-3xl font-bold text-violet-600">{toCurrency(travelTotal)}</p><p className="mt-1 text-xs text-[var(--theme-muted-foreground)]">nas despesas</p></div><div className="rounded-2xl bg-violet-100 p-3 text-violet-600"><Plane className="h-6 w-6" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Receitas</p><p className="mt-1 text-xl font-bold text-green-600">{toCurrency(revenueTotal)}</p></div><div className="rounded-xl bg-green-100 p-2.5 text-green-600"><TrendingUp className="h-5 w-5" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Despesas</p><p className="mt-1 text-xl font-bold text-red-500">{toCurrency(expenseTotal)}</p><p className="mt-0.5 text-[10px] text-[var(--theme-muted-foreground)]">incl. viagens</p></div><div className="rounded-xl bg-red-100 p-2.5 text-red-500"><TrendingDown className="h-5 w-5" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Saldo</p><p className={`mt-1 text-xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-500'}`}>{toCurrency(balance)}</p></div><div className="rounded-xl bg-slate-100 p-2.5 text-slate-600"><Wallet className="h-5 w-5" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Viagens</p><p className="mt-1 text-xl font-bold text-violet-600">{toCurrency(travelTotal)}</p><p className="mt-0.5 text-[10px] text-[var(--theme-muted-foreground)]">nas despesas</p></div><div className="rounded-xl bg-violet-100 p-2.5 text-violet-600"><Plane className="h-5 w-5" /></div></div></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card><CardContent className="p-5"><p className="text-sm text-amber-600">Fixos / mês</p><p className="mt-2 text-3xl font-bold">{toCurrency(fixedTotal)}</p><p className="text-sm text-[var(--theme-muted-foreground)]">Contas recorrentes e mensais</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-sm text-violet-600">Assinaturas / mês</p><p className="mt-2 text-3xl font-bold">{toCurrency(subscriptionTotal)}</p><p className="text-sm text-[var(--theme-muted-foreground)]">Serviços com cobrança recorrente</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-sm text-red-500">Variáveis</p><p className="mt-2 text-3xl font-bold">{toCurrency(variableTotal)}</p><p className="text-sm text-[var(--theme-muted-foreground)]">Gastos pontuais e do mês atual</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-amber-600">Fixos / mês</p><p className="mt-1 text-xl font-bold">{toCurrency(fixedTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Contas recorrentes e mensais</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-violet-600">Assinaturas / mês</p><p className="mt-1 text-xl font-bold">{toCurrency(subscriptionTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Serviços com cobrança recorrente</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-red-500">Variáveis</p><p className="mt-1 text-xl font-bold">{toCurrency(variableTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Gastos pontuais e do mês atual</p></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-4 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
@@ -665,23 +736,82 @@ export function ForAllFinancePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-muted-foreground)]" />
-            <Input
-              placeholder={tab === 'despesas' ? 'Buscar despesa por descrição, categoria ou cartão…' : 'Buscar receita por descrição ou categoria…'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+          {/* Busca + filtros */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-muted-foreground)]" />
+              <Input
+                placeholder={tab === 'despesas' ? 'Buscar despesa por descrição, categoria ou cartão…' : 'Buscar receita por descrição ou categoria…'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {tab === 'despesas' && (
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-[var(--theme-muted-foreground)]" />
+                <div className="flex gap-1 flex-wrap">
+                  {[
+                    { key: 'todas', label: 'Todas', cor: 'var(--theme-accent)' },
+                    { key: 'cartao', label: 'Cartão', cor: '#3B82F6' },
+                    { key: 'viagem', label: 'Viagens', cor: '#8B5CF6' },
+                    { key: 'fixo', label: 'Fixas', cor: '#F59E0B' },
+                    { key: 'assinatura', label: 'Assinaturas', cor: '#A855F7' },
+                    { key: 'variavel', label: 'Variáveis', cor: '#EF4444' },
+                    { key: 'alimentacao', label: 'Alimentação', cor: '#F59E0B' },
+                    { key: 'transporte', label: 'Transporte', cor: '#3B82F6' },
+                    { key: 'moradia', label: 'Moradia', cor: '#10B981' },
+                    { key: 'saude', label: 'Saúde', cor: '#EF4444' },
+                    { key: 'lazer', label: 'Lazer', cor: '#8B5CF6' },
+                    { key: 'educacao', label: 'Educação', cor: '#06B6D4' },
+                  ].map((f) => {
+                    const active = despesaFilter === f.key;
+                    return (
+                      <button
+                        key={f.key}
+                        onClick={() => setDespesaFilter(f.key)}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        style={active
+                          ? { background: f.cor, color: '#fff' }
+                          : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
+                      >
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-4">
-          {(tab === 'despesas' ? allExpenses : revenuesFiltered).filter(matchesSearch).map((item) => (
+          {(tab === 'despesas'
+            ? allExpenses.filter((item) => {
+                if (despesaFilter === 'todas') return true;
+                if (despesaFilter === 'cartao') return item._isCartao;
+                if (despesaFilter === 'viagem') return item._isTravel;
+                if (despesaFilter === 'fixo') return item.tipoGasto === 'fixo';
+                if (despesaFilter === 'assinatura') return item.tipoGasto === 'assinatura';
+                if (despesaFilter === 'variavel') return item.tipoGasto === 'variavel' && !item._isTravel && !item._isCartao;
+                return item.categoria === despesaFilter;
+              })
+            : revenuesFiltered
+          ).filter(matchesSearch).map((item) => (
             <Card key={item.id}>
               <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   {item._isTravel && (
                     <div className="rounded-xl bg-violet-100 p-2 text-violet-600 flex-shrink-0">
                       <Plane className="h-4 w-4" />
+                    </div>
+                  )}
+                  {item._isCartao && !item._isTravel && (
+                    <div className="rounded-xl bg-blue-100 p-2 text-blue-600 flex-shrink-0">
+                      <CreditCard className="h-4 w-4" />
+                    </div>
+                  )}
+                  {tab === 'receitas' && item.recorrente && (
+                    <div className="rounded-xl bg-green-100 p-2 text-green-600 flex-shrink-0">
+                      <RefreshCw className="h-4 w-4" />
                     </div>
                   )}
                   <div>
@@ -702,10 +832,22 @@ export function ForAllFinancePage() {
                     : tab === 'despesas' && item.tipoGasto
                     ? <Badge variant="outline">{item.tipoGasto}</Badge>
                     : null}
-                  <Badge variant="outline">{tab === 'despesas' ? 'Despesa' : 'Receita'}</Badge>
+                  {tab === 'receitas' && item.recorrente && (
+                    <Badge variant="outline" className="border-green-300 text-green-600">Recorrente</Badge>
+                  )}
                   <span className={`text-lg font-bold ${tab === 'despesas' ? 'text-red-500' : 'text-green-600'}`}>
                     {toCurrency(Number(item.valor || 0))}
                   </span>
+                  {/* Botão excluir — só para itens que não são viagem (viagens são excluídas na aba de viagens) */}
+                  {!item._isTravel && item.id && !String(item.id).startsWith('trip-') && (
+                    <button
+                      onClick={() => tab === 'despesas' ? handleDeleteExpense(item.id) : handleDeleteRevenue(item.id)}
+                      className="ml-1 rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -853,11 +995,17 @@ export function ForAllFinancePage() {
                 <Select value={expenseForm.tipoGasto} onValueChange={(value) => setExpenseForm((prev) => ({ ...prev, tipoGasto: value as ExpenseType }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixo">Fixo</SelectItem>
-                    <SelectItem value="variavel">Variável</SelectItem>
-                    <SelectItem value="assinatura">Assinatura</SelectItem>
+                    <SelectItem value="fixo">Fixo (aluguel, financiamento...)</SelectItem>
+                    <SelectItem value="variavel">Variável (pontual)</SelectItem>
+                    <SelectItem value="assinatura">Assinatura (Netflix, Spotify...)</SelectItem>
                   </SelectContent>
                 </Select>
+                {(expenseForm.tipoGasto === 'fixo' || expenseForm.tipoGasto === 'assinatura') && (
+                  <p className="text-xs text-[var(--theme-muted-foreground)] flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3" />
+                    Será replicado automaticamente para todos os meses restantes do ano
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -872,28 +1020,50 @@ export function ForAllFinancePage() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle>Nova receita</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Descrição</Label><Input value={revenueForm.descricao} onChange={(e) => setRevenueForm((prev) => ({ ...prev, descricao: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Descrição</Label><Input placeholder="Ex: Salário, Freelance..." value={revenueForm.descricao} onChange={(e) => setRevenueForm((prev) => ({ ...prev, descricao: e.target.value }))} /></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2"><Label>Valor</Label><Input value={revenueForm.valor} onChange={(e) => setRevenueForm((prev) => ({ ...prev, valor: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Data</Label><Input type="date" value={revenueForm.data} onChange={(e) => setRevenueForm((prev) => ({ ...prev, data: e.target.value }))} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={revenueForm.categoria} onValueChange={(value) => setRevenueForm((prev) => ({ ...prev, categoria: value }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="salario">Salário</SelectItem>
-                  <SelectItem value="freelance">Freelance</SelectItem>
-                  <SelectItem value="vendas">Vendas</SelectItem>
-                  <SelectItem value="investimentos">Investimentos</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={revenueForm.categoria} onValueChange={(value) => setRevenueForm((prev) => ({ ...prev, categoria: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="salario">Salário</SelectItem>
+                    <SelectItem value="freelance">Freelance</SelectItem>
+                    <SelectItem value="vendas">Vendas</SelectItem>
+                    <SelectItem value="investimentos">Investimentos</SelectItem>
+                    <SelectItem value="aluguel">Aluguel</SelectItem>
+                    <SelectItem value="bonus">Bônus</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={revenueForm.recorrente}
+                    onChange={(e) => setRevenueForm((prev) => ({ ...prev, recorrente: e.target.checked }))}
+                    className="h-4 w-4 rounded"
+                  />
+                  <div>
+                    <span className="text-sm text-[var(--theme-foreground)] flex items-center gap-1">
+                      <RefreshCw className="h-3.5 w-3.5" /> Receita recorrente
+                    </span>
+                    <span className="text-xs text-[var(--theme-muted-foreground)]">Replica para todos os meses restantes</span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevenueDialog(false)}>Cancelar</Button>
-            <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSaveRevenue}>Salvar receita</Button>
+            <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSaveRevenue}>
+              {revenueForm.recorrente ? 'Salvar para todos os meses' : 'Salvar receita'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

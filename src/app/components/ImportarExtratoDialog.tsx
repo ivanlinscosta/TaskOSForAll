@@ -32,6 +32,7 @@ import {
   CATEGORIAS_RECEITA_CORES,
   type CategoriaReceita,
 } from '../../services/receitas-service';
+import { formatCurrency } from '../../lib/utils';
 
 type Step = 'upload' | 'loading' | 'review';
 
@@ -41,8 +42,7 @@ interface TransacaoUI extends ExtratoTransacao {
   tipoGasto: TipoCusto;
 }
 
-const fmt = (v: number) =>
-  `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+const fmt = formatCurrency;
 
 /** Parse 'DD/MM/AAAA' ou 'DD/MM/AA' → Date. */
 function parseBrDate(br: string): Date {

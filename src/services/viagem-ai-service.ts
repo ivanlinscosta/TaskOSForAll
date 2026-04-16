@@ -33,6 +33,7 @@ export interface OrcamentoItem {
   valor: number;
   formaPagamento: 'a_vista' | 'a_prazo';
   parcelas?: number;
+  sugestao?: string;
 }
 
 export interface ViagemPlanResult {

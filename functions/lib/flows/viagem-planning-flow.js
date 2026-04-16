@@ -34,6 +34,7 @@ const OrcamentoItemSchema = zod_1.z.object({
     valor: zod_1.z.number(),
     formaPagamento: zod_1.z.enum(['a_vista', 'a_prazo']),
     parcelas: zod_1.z.number().optional(),
+    sugestao: zod_1.z.string(),
 });
 const ViagemPlanOutputSchema = zod_1.z.object({
     destino: zod_1.z.string(),
@@ -91,6 +92,13 @@ Regras:
 8. Se viagem internacional, inclua dicas sobre passaporte, visto e câmbio nas notas.
 9. formaPagamento: 'a_vista' para valores menores, 'a_prazo' para passagens/hospedagem caras (2-12x).
 10. descricao: 2-3 frases sobre a viagem. notas: dicas sobre documentação, clima, moeda.
+11. IMPORTANTE — campo "sugestao" de cada item do orcamentoDetalhado: sugira locais, companhias ou sites REAIS para compra. Exemplos:
+    - passagem: "LATAM ou GOL via Google Flights (google.com/flights) ou Decolar (decolar.com)"
+    - hospedagem: "Hotel Ibis Copacabana ou Pousada Mar Azul via Booking.com ou Airbnb"
+    - passeios: "Tour pelo centro histórico com Free Walking Tour Salvador"
+    - alimentacao: "Restaurante Aconchego Carioca (Praça da Bandeira) — média R$60/pessoa"
+    - transporte: "Uber/99 ou aluguel de carro via Localiza (localiza.com)"
+    Seja específico com nomes reais de companhias, hotéis, restaurantes e sites de compra.
 
 Retorne JSON no formato do schema.`;
     try {

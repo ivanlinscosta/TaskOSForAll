@@ -16,6 +16,7 @@ import {
 import { db, COLLECTIONS } from '../lib/firebase-config';
 import { requireUid, currentUidOrNull } from '../lib/require-auth';
 import { notificarSilencioso } from './notifications-service';
+import { formatCurrency } from '../lib/utils';
 
 export type CategoriaCusto =
   | 'alimentacao'
@@ -74,7 +75,7 @@ export async function criarCusto(custo: Omit<Custo, 'id' | 'criadoEm'>): Promise
   const ref = await addDoc(collection(db, COLLECTIONS.CUSTOS), data);
   notificarSilencioso({
     titulo: 'Nova despesa registrada',
-    mensagem: `${custo.descricao} — R$ ${custo.valor.toFixed(2)}`,
+    mensagem: `${custo.descricao} — ${formatCurrency(custo.valor)}`,
     tipo: 'despesa',
     lida: false,
     contexto: 'pessoal',

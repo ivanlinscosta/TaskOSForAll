@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import * as viagensService from '../../../services/viagens-service';
+import { formatCurrency } from '../../../lib/utils';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -322,7 +323,7 @@ export function EditarViagem() {
                   </span>
                   {totalOrcamento > 0 && (
                     <span className="text-base font-bold" style={{ color: 'var(--theme-accent)' }}>
-                      Total: R$ {totalOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      Total: {formatCurrency(totalOrcamento)}
                     </span>
                   )}
                 </CardTitle>
@@ -364,7 +365,7 @@ export function EditarViagem() {
                               className="text-xs"
                               style={{ background: `${cor}20`, color: cor }}
                             >
-                              R$ {valorNum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              {formatCurrency(valorNum)}
                               {item.formaPagamento === 'a_prazo' && ` • ${item.parcelas}x`}
                             </Badge>
                           )}
@@ -461,10 +462,7 @@ export function EditarViagem() {
                                       Valor por parcela
                                     </span>
                                     <span className="font-bold" style={{ color: cor }}>
-                                      R${' '}
-                                      {(valorParcela ?? 0).toLocaleString('pt-BR', {
-                                        minimumFractionDigits: 2,
-                                      })}
+                                      {formatCurrency(valorParcela ?? 0)}
                                     </span>
                                   </div>
                                   {item.dataPrimeiraParcela && (
@@ -677,7 +675,7 @@ export function EditarViagem() {
                   >
                     <span>Total</span>
                     <span style={{ color: 'var(--theme-accent)' }}>
-                      R$ {totalOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(totalOrcamento)}
                     </span>
                   </div>
                 </CardContent>

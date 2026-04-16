@@ -19,6 +19,7 @@ import { ptBR } from 'date-fns/locale';
 import * as viagensService from '../../../services/viagens-service';
 import * as custosService from '../../../services/custos-service';
 import * as tarefasService from '../../../services/tarefas-pessoais-service';
+import { formatCurrency } from '../../../lib/utils';
 
 export function PessoalIndex() {
   const navigate = useNavigate();
@@ -120,10 +121,10 @@ export function PessoalIndex() {
               <div>
                 <p className="text-sm text-[var(--theme-muted-foreground)]">Gasto (30 dias)</p>
                 <p className="text-3xl font-bold text-[var(--theme-foreground)] mt-1">
-                  R$ {gastoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {formatCurrency(gastoMes)}
                 </p>
                 <p className="text-xs text-[var(--theme-muted-foreground)] mt-1">
-                  Total: R$ {totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  Total: {formatCurrency(totalGasto)}
                 </p>
               </div>
               <div
@@ -223,7 +224,7 @@ export function PessoalIndex() {
                 <div className="flex items-center gap-2 text-sm">
                   <Wallet className="h-4 w-4 text-[var(--theme-muted-foreground)]" />
                   <span className="text-[var(--theme-foreground)] font-medium">
-                    Orçamento: R$ {proximaViagem.orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    Orçamento: {formatCurrency(proximaViagem.orcamento)}
                   </span>
                 </div>
                 {proximaViagem.descricao && (
@@ -335,7 +336,7 @@ export function PessoalIndex() {
                       </p>
                     </div>
                     <span className="text-sm font-bold text-red-500">
-                      - R$ {c.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      - {formatCurrency(c.valor)}
                     </span>
                   </div>
                 ))}
@@ -386,7 +387,7 @@ export function PessoalIndex() {
                             {custosService.CATEGORIAS_LABELS[cat as custosService.CategoriaCusto] || cat}
                           </span>
                           <span className="font-medium text-[var(--theme-foreground)]">
-                            R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {formatCurrency(valor)}
                           </span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-[var(--theme-muted)]">

@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import * as custosService from '../../../services/custos-service';
 import * as receitasService from '../../../services/receitas-service';
 import * as viagensService from '../../../services/viagens-service';
+import { formatCurrency } from '../../../lib/utils';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -35,7 +36,7 @@ const TooltipBRL = ({ active, payload, label }: any) => {
       <p className="font-semibold mb-2 text-[var(--theme-foreground)]">{label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.fill || p.stroke }}>
-          {p.name}: R$ {(p.value ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {p.name}: {formatCurrency(p.value ?? 0)}
         </p>
       ))}
     </div>
@@ -371,7 +372,7 @@ export function Custos() {
               <div>
                 <p className="text-xs text-[var(--theme-muted-foreground)]">{label}</p>
                 <p className="text-lg font-bold" style={{ color: cor }}>
-                  {valor < 0 ? '- ' : ''}R$ {Math.abs(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {valor < 0 ? '- ' : ''}{formatCurrency(Math.abs(valor))}
                 </p>
               </div>
             </CardContent>
@@ -390,7 +391,7 @@ export function Custos() {
             <CardContent className="p-4">
               <p className="text-xs font-medium" style={{ color: cor }}>{label}</p>
               <p className="text-xl font-bold mt-1 text-[var(--theme-foreground)]">
-                R$ {valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatCurrency(valor)}
               </p>
               <p className="text-xs mt-0.5 text-[var(--theme-muted-foreground)]">{desc}</p>
             </CardContent>
@@ -431,7 +432,7 @@ export function Custos() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }} />
                   <YAxis tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }}
-                    tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                    tickFormatter={(v) => formatCurrency(v)} />
                   <Tooltip content={<TooltipBRL />} />
                   <Legend />
                   <Bar dataKey="Receitas" fill="#059669" radius={[4,4,0,0]} />
@@ -452,7 +453,7 @@ export function Custos() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }} />
                   <YAxis tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }}
-                    tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                    tickFormatter={(v) => formatCurrency(v)} />
                   <Tooltip content={<TooltipBRL />} />
                   <Line
                     type="monotone" dataKey="Saldo" stroke="var(--theme-accent)"
@@ -474,7 +475,7 @@ export function Custos() {
                       <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
                         {pieData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                       </Pie>
-                      <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -492,7 +493,7 @@ export function Custos() {
                       <Pie data={pieReceitas} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
                         {pieReceitas.map((e, i) => <Cell key={i} fill={e.fill} />)}
                       </Pie>
-                      <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} />
+                      <Tooltip formatter={(v: number) => formatCurrency(v)} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -517,7 +518,7 @@ export function Custos() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                     <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }} />
                     <YAxis tick={{ fontSize: 11, fill: 'var(--theme-muted-foreground)' }}
-                      tickFormatter={(v) => `R$${(v/1000).toFixed(0)}k`} />
+                      tickFormatter={(v) => formatCurrency(v)} />
                     <Tooltip content={<TooltipBRL />} />
                     <Bar dataKey="Viagens" fill="#6366F1" radius={[4,4,0,0]} />
                   </BarChart>
@@ -558,7 +559,7 @@ export function Custos() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-red-500">
-                    R$ {custo.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(custo.valor)}
                   </span>
                   <button onClick={() => abrirEditCusto(custo)} className="text-[var(--theme-muted-foreground)] hover:text-[var(--theme-accent)]" title="Editar">
                     <Pencil className="h-4 w-4" />
@@ -595,7 +596,7 @@ export function Custos() {
                 </h3>
                 {fixos.length > 0 && (
                   <span className="text-sm font-medium text-[var(--theme-muted-foreground)]">
-                    R$ {fixos.reduce((s, c) => s + c.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                    {formatCurrency(fixos.reduce((s, c) => s + c.valor, 0))}/mês
                   </span>
                 )}
               </div>
@@ -616,7 +617,7 @@ export function Custos() {
                 </h3>
                 {assinaturas.length > 0 && (
                   <span className="text-sm font-medium text-[var(--theme-muted-foreground)]">
-                    R$ {assinaturas.reduce((s, c) => s + c.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
+                    {formatCurrency(assinaturas.reduce((s, c) => s + c.valor, 0))}/mês
                   </span>
                 )}
               </div>
@@ -655,7 +656,7 @@ export function Custos() {
                       </div>
                     </div>
                     <span className="text-lg font-bold text-[#6366F1]">
-                      R$ {v.orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(v.orcamento)}
                     </span>
                   </CardContent>
                 </Card>
@@ -707,7 +708,7 @@ export function Custos() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-lg font-bold text-green-600">
-                      + R$ {r.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      + {formatCurrency(r.valor)}
                     </span>
                     <button onClick={() => abrirEditReceita(r)} className="text-[var(--theme-muted-foreground)] hover:text-[var(--theme-accent)]" title="Editar">
                       <Pencil className="h-4 w-4" />

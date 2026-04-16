@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
-import { getInitials } from '../../lib/utils';
+import { getInitials, formatCurrency } from '../../lib/utils';
 import { AvatarUploadDialog } from '../components/AvatarUploadDialog';
 
 export function Perfil() {
@@ -160,10 +160,7 @@ export function Perfil() {
             <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-foreground)]">
               <Wallet className="h-4 w-4 text-[var(--theme-accent)]" />
               {typeof userProfile?.rendaMensal === 'number'
-                ? userProfile.rendaMensal.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })
+                ? formatCurrency(userProfile.rendaMensal)
                 : 'Não informada'}
             </p>
           </div>

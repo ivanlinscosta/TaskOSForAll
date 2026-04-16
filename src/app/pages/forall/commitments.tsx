@@ -5,19 +5,23 @@ import { ptBR } from 'date-fns/locale';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Loader, Plus, Sparkles } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, ExternalLink, Loader, Plus, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
+import * as gcalService from '../../../services/google-calendar-service';
 import { useAuth } from '../../../lib/auth-context';
 import { listWorkspaceEntity } from '../../../services/forall-data-service';
+import { listarViagens } from '../../../services/viagens-service';
+import { listarTarefasPessoais } from '../../../services/tarefas-pessoais-service';
 
 type EventItem = {
   id: string;
   title: string;
   description?: string;
   date: Date;
-  type: 'reuniao' | 'tarefa' | 'viagem';
+  type: 'reuniao' | 'tarefa' | 'viagem' | 'google';
 };
 
-const TYPE_META = {
+const TYPE_META: Record<EventItem['type'], { label: string; badgeClass: string; cardClass: string }> = {
   reuniao: {
     label: 'Reunião',
     badgeClass: 'bg-blue-100 text-blue-700',
@@ -32,6 +36,11 @@ const TYPE_META = {
     label: 'Viagem',
     badgeClass: 'bg-violet-100 text-violet-700',
     cardClass: 'border-violet-200 bg-violet-500 text-white',
+  },
+  google: {
+    label: 'Google',
+    badgeClass: 'bg-emerald-100 text-emerald-700',
+    cardClass: 'border-emerald-200 bg-emerald-500 text-white',
   },
 };
 
@@ -54,6 +63,8 @@ export function ForAllCommitmentsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [weekAnchor, setWeekAnchor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [gcalConnected, setGcalConnected] = useState(gcalService.isCalendarConnected());
+  const [gcalLoading, setGcalLoading] = useState(false);
 
   useEffect(() => {
     void loadEvents();
@@ -63,10 +74,12 @@ export function ForAllCommitmentsPage() {
     if (!user?.uid) return;
     try {
       setIsLoading(true);
-      const [meetings, tasks, trips] = await Promise.all([
+      const [meetings, tasks, wsTrips, directViagens, tarefasPessoais] = await Promise.all([
         listWorkspaceEntity(user.uid, 'meetings', workspace === 'work' ? 'work' : 'life'),
         listWorkspaceEntity(user.uid, 'tasks', workspace === 'work' ? 'work' : 'life'),
         listWorkspaceEntity(user.uid, 'trips', workspace === 'work' ? 'work' : 'life'),
+        listarViagens(),
+        listarTarefasPessoais(),
       ]);
 
       const normalized: EventItem[] = [];
@@ -97,22 +110,112 @@ export function ForAllCommitmentsPage() {
         }
       });
 
-      trips.forEach((item) => {
+      // Tarefas pessoais com vencimento
+      tarefasPessoais.forEach((t) => {
+        if (t.dataVencimento && t.status !== 'done') {
+          const date = tryParseDate(t.dataVencimento);
+          if (date) {
+            normalized.push({
+              id: `ptask-${t.id}`,
+              title: t.titulo,
+              description: t.descricao || '',
+              date,
+              type: 'tarefa',
+            });
+          }
+        }
+      });
+
+      // Viagens do workspace (listWorkspaceEntity)
+      const tripIds = new Set<string>();
+      wsTrips.forEach((item) => {
         const date = tryParseDate(item.dataIda);
         if (date) {
+          tripIds.add(item.id);
           normalized.push({
             id: `trip-${item.id}`,
             title: item.destino || item.title || 'Viagem',
-            description: item.objetivo || '',
+            description: item.descricao || item.objetivo || '',
             date,
             type: 'viagem',
           });
         }
       });
 
+      // Viagens diretas (planejadas com IA e outras) — evita duplicatas
+      directViagens.forEach((v) => {
+        if (tripIds.has(v.id!)) return;
+        const date = tryParseDate(v.dataIda);
+        if (date) {
+          normalized.push({
+            id: `trip-${v.id}`,
+            title: `✈️ ${v.destino}`,
+            description: v.descricao || '',
+            date,
+            type: 'viagem',
+          });
+          // Também adicionar data de volta como evento
+          if (v.dataVolta) {
+            const volta = tryParseDate(v.dataVolta);
+            if (volta) {
+              normalized.push({
+                id: `trip-volta-${v.id}`,
+                title: `🏠 Volta: ${v.destino}`,
+                description: '',
+                date: volta,
+                type: 'viagem',
+              });
+            }
+          }
+        }
+      });
+
+      // Carregar eventos do Google Calendar se conectado
+      if (gcalService.isCalendarConnected()) {
+        try {
+          const now = new Date();
+          const twoMonths = new Date(now);
+          twoMonths.setMonth(twoMonths.getMonth() + 2);
+          const gcalEvents = await gcalService.listarEventosCalendar(
+            new Date(now.getFullYear(), now.getMonth() - 1, 1),
+            twoMonths,
+          );
+          gcalEvents.forEach((ge) => {
+            const dateStr = ge.start.dateTime || ge.start.date;
+            const date = tryParseDate(dateStr);
+            if (date) {
+              normalized.push({
+                id: `gcal-${ge.id}`,
+                title: ge.summary || 'Evento Google',
+                description: ge.description || '',
+                date,
+                type: 'google',
+              });
+            }
+          });
+        } catch (err) {
+          console.warn('[Google Calendar] Erro ao carregar eventos:', err);
+        }
+      }
+
       setEvents(normalized.sort((a, b) => a.date.getTime() - b.date.getTime()));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConnectGoogleCalendar = async () => {
+    setGcalLoading(true);
+    try {
+      await gcalService.getCalendarAccessToken();
+      setGcalConnected(true);
+      toast.success('Google Calendar conectado! Recarregando eventos...');
+      await loadEvents();
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao conectar com o Google Calendar');
+    } finally {
+      setGcalLoading(false);
     }
   };
 
@@ -139,7 +242,22 @@ export function ForAllCommitmentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {!gcalConnected ? (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleConnectGoogleCalendar}
+              disabled={gcalLoading}
+            >
+              <ExternalLink className="h-4 w-4" />
+              {gcalLoading ? 'Conectando...' : 'Conectar Google Calendar'}
+            </Button>
+          ) : (
+            <Badge className="bg-emerald-100 text-emerald-700 gap-1">
+              <CalendarDays className="h-3 w-3" /> Google Calendar conectado
+            </Badge>
+          )}
           <Button variant="outline" className="gap-2" onClick={() => navigate(`/chat?workspace=${workspace}`)}>
             <Sparkles className="h-4 w-4" />
             Chat guiado
@@ -155,6 +273,7 @@ export function ForAllCommitmentsPage() {
         <Badge className={TYPE_META.reuniao.badgeClass}>Reuniões</Badge>
         <Badge className={TYPE_META.tarefa.badgeClass}>Prazos</Badge>
         <Badge className={TYPE_META.viagem.badgeClass}>Viagens</Badge>
+        {gcalConnected && <Badge className={TYPE_META.google.badgeClass}>Google Calendar</Badge>}
       </div>
 
       <Card className="overflow-hidden rounded-[28px]">

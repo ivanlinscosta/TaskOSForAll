@@ -29,6 +29,7 @@ import {
   type MeioTransporte,
   type ViagemPlanResult,
 } from '../../services/viagem-ai-service';
+import { formatCurrency } from '../../lib/utils';
 
 type Step = 'choose_mode' | 'form' | 'loading' | 'result';
 
@@ -58,8 +59,7 @@ const MODOS: { key: ModoViagem; icon: typeof MapPin; label: string; desc: string
   },
 ];
 
-const fmt = (v: number) =>
-  `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+const fmt = formatCurrency;
 
 interface Props {
   open: boolean;
@@ -471,7 +471,7 @@ export function PlanViagemIADialog({ open, onOpenChange, onAccept }: Props) {
             {/* Orçamento Detalhado */}
             <div>
               <p className="text-sm font-semibold text-[var(--theme-foreground)] mb-2">Orçamento por Categoria</p>
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 {result.orcamentoDetalhado.map((item, i) => {
                   const pct = result.orcamentoTotal > 0
                     ? (item.valor / result.orcamentoTotal) * 100
@@ -480,22 +480,38 @@ export function PlanViagemIADialog({ open, onOpenChange, onAccept }: Props) {
                     passagem: 'Passagem', hospedagem: 'Hospedagem', passeios: 'Passeios',
                     alimentacao: 'Alimentação', transporte: 'Transporte',
                   };
+                  const catIcons: Record<string, string> = {
+                    passagem: '✈️', hospedagem: '🏨', passeios: '🎯',
+                    alimentacao: '🍽️', transporte: '🚗',
+                  };
                   return (
-                    <div key={i} className="flex items-center gap-3 text-sm">
-                      <span className="w-24 text-[var(--theme-muted-foreground)]">
-                        {catLabels[item.categoria] || item.categoria}
-                      </span>
-                      <div className="flex-1 h-2 rounded-full bg-[var(--theme-muted)]">
-                        <div
-                          className="h-2 rounded-full"
-                          style={{ width: `${pct}%`, background: 'var(--theme-accent)' }}
-                        />
+                    <div
+                      key={i}
+                      className="rounded-xl p-3"
+                      style={{ background: 'var(--theme-background-secondary)' }}
+                    >
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-base">{catIcons[item.categoria] || '📦'}</span>
+                        <span className="w-24 font-medium text-[var(--theme-foreground)]">
+                          {catLabels[item.categoria] || item.categoria}
+                        </span>
+                        <div className="flex-1 h-2 rounded-full bg-[var(--theme-muted)]">
+                          <div
+                            className="h-2 rounded-full"
+                            style={{ width: `${pct}%`, background: 'var(--theme-accent)' }}
+                          />
+                        </div>
+                        <span className="w-24 text-right font-bold text-[var(--theme-foreground)]">
+                          {fmt(item.valor)}
+                        </span>
+                        {item.formaPagamento === 'a_prazo' && item.parcelas && (
+                          <Badge variant="outline" className="text-xs">{item.parcelas}x</Badge>
+                        )}
                       </div>
-                      <span className="w-24 text-right font-medium text-[var(--theme-foreground)]">
-                        {fmt(item.valor)}
-                      </span>
-                      {item.formaPagamento === 'a_prazo' && item.parcelas && (
-                        <Badge variant="outline" className="text-xs">{item.parcelas}x</Badge>
+                      {item.sugestao && (
+                        <p className="mt-1.5 ml-8 text-xs text-[var(--theme-muted-foreground)] leading-relaxed">
+                          💡 {item.sugestao}
+                        </p>
                       )}
                     </div>
                   );

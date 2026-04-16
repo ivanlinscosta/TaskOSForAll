@@ -28,6 +28,7 @@ import {
 } from '../../services/gamification-service';
 import { carregarAnaliseCarreira, type CarreiraAnalise } from '../../services/carreira-service';
 import { LevelProgress } from '../components/gamification/LevelProgress';
+import { formatCurrency } from '../../lib/utils';
 import { toast } from 'sonner';
 
 type Stats = {
@@ -305,8 +306,8 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {fn?.rendaMensal ? <p><strong>Renda:</strong> R$ {fn.rendaMensal.toLocaleString('pt-BR')}</p> : null}
-            {fn?.reservaEmergencia !== undefined ? <p><strong>Reserva:</strong> R$ {fn.reservaEmergencia.toLocaleString('pt-BR')}</p> : null}
+            {fn?.rendaMensal ? <p><strong>Renda:</strong> {formatCurrency(fn.rendaMensal)}</p> : null}
+            {fn?.reservaEmergencia !== undefined ? <p><strong>Reserva:</strong> {formatCurrency(fn.reservaEmergencia)}</p> : null}
             {fn?.perfilInvestidor ? <p><strong>Perfil:</strong> {fn.perfilInvestidor}</p> : null}
             {fn?.objetivosFinanceiros?.length ? (
               <p className="text-xs italic text-[var(--theme-muted-foreground)]">
