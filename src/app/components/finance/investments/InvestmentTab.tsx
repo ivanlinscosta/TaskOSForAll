@@ -1001,24 +1001,28 @@ export function InvestmentTab() {
       );
 
       const today = new Date().toISOString().split('T')[0];
-      const result = await callFn({
+
+      // Genkit rejects null — strip every nullish optional field to undefined
+      const payload: Record<string, unknown> = {
         investmentName:   investment.name,
         investmentType:   investment.type,
-        institution:      investment.institution || undefined,
         investedAmount:   investment.investedAmount,
         benchmarkType:    investment.benchmarkType,
         benchmarkPercent: investment.benchmarkPercent,
-        fixedRateAnnual:  investment.fixedRateAnnual,
         startDate:        investment.startDate,
-        maturityDate:     investment.maturityDate,
         liquidity:        investment.liquidity,
-        ticker:           investment.ticker || undefined,
         selicAnual:       marketData.selicAnual,
         cdiAnual:         marketData.cdiAnual,
         ipcaMensal:       marketData.ipcaMensal,
         ipcaAnual:        marketData.ipcaAnual,
         todayDate:        today,
-      });
+      };
+      if (investment.institution)   payload.institution     = investment.institution;
+      if (investment.fixedRateAnnual != null) payload.fixedRateAnnual = investment.fixedRateAnnual;
+      if (investment.maturityDate)  payload.maturityDate    = investment.maturityDate;
+      if (investment.ticker)        payload.ticker          = investment.ticker;
+
+      const result = await callFn(payload);
 
       setAiProjections((prev) => ({ ...prev, [id]: result.data }));
     } catch (err) {
