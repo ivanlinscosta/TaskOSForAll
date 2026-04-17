@@ -44,6 +44,7 @@ import { CATEGORIAS_ORCAMENTO_LABELS, listarViagens } from '../../../services/vi
 import { listarCustos, deletarCusto } from '../../../services/custos-service';
 import { toast } from 'sonner';
 import { CartaoTab } from './CartaoTab';
+import { InvestmentTab } from '../../components/finance/investments/InvestmentTab';
 import { ImportarFaturaDialog } from '../../components/ImportarFaturaDialog';
 import { ImportarExtratoDialog } from '../../components/ImportarExtratoDialog';
 import { listarReceitas, deletarReceita } from '../../../services/receitas-service';
@@ -81,7 +82,7 @@ export function ForAllFinancePage() {
   const { user, userProfile, updateUserProfileData } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [tab, setTab] = useState<'visao' | 'despesas' | 'receitas' | 'cartao'>('visao');
+  const [tab, setTab] = useState<'visao' | 'despesas' | 'receitas' | 'cartao' | 'investimentos'>('visao');
   const [expenses, setExpenses] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<any[]>([]);
   const [trips, setTrips] = useState<any[]>([]);
@@ -660,17 +661,18 @@ export function ForAllFinancePage() {
         <Card><CardContent className="p-4"><p className="text-xs text-red-500">Variáveis</p><p className="mt-1 text-xl font-bold">{toCurrency(variableTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Gastos pontuais e do mês atual</p></CardContent></Card>
       </div>
 
-      <div className="grid grid-cols-4 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
+      <div className="grid grid-cols-5 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
         {[
           { key: 'visao', label: 'Visão Geral' },
           { key: 'despesas', label: 'Despesas' },
           { key: 'receitas', label: 'Receitas' },
           { key: 'cartao', label: 'Cartão' },
+          { key: 'investimentos', label: 'Investimentos' },
         ].map((item) => (
           <button
             key={item.key}
             onClick={() => setTab(item.key as any)}
-            className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            className={`rounded-xl px-3 py-3 text-sm font-semibold transition ${
               tab === item.key ? 'bg-white shadow-sm text-[var(--theme-accent)]' : 'text-[var(--theme-muted-foreground)]'
             }`}
           >
@@ -687,7 +689,9 @@ export function ForAllFinancePage() {
         />
       )}
 
-      {tab !== 'cartao' && (tab === 'visao' ? (
+      {tab === 'investimentos' && <InvestmentTab />}
+
+      {tab !== 'cartao' && tab !== 'investimentos' && (tab === 'visao' ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-[var(--theme-accent)]" />Receitas vs despesas</CardTitle></CardHeader>

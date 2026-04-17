@@ -48,6 +48,11 @@ export const COLLECTIONS = {
   USER_CHALLENGES: 'user_challenges',
   USER_GOALS_CAREER: 'user_goals_career',
   SAVED_JOBS: 'saved_jobs',
+  // Investments module
+  USER_INVESTMENTS: 'user_investments',
+  INVESTMENT_MARKET_SNAPSHOTS: 'investment_market_snapshots',
+  INVESTMENT_DAILY_SNAPSHOTS: 'investment_daily_snapshots',
+  INVESTMENT_AI_INSIGHTS: 'investment_ai_insights',
 } as const;
 
 export { analytics };
