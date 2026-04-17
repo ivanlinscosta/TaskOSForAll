@@ -9,6 +9,7 @@ import { carreiraFlow } from './flows/carreira-flow';
 import { viagemPlanningFlow } from './flows/viagem-planning-flow';
 import { curriculoParserFlow } from './flows/curriculo-parser-flow';
 import { investmentInsightsFlow } from './flows/investment-insights-flow';
+import { investmentProjectionFlow } from './flows/investment-projection-flow';
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
@@ -86,4 +87,13 @@ export const investmentInsightsCallable = onCallGenkit(
     timeoutSeconds: 120,
   },
   investmentInsightsFlow
+);
+
+export const investmentProjectionCallable = onCallGenkit(
+  {
+    secrets: [geminiApiKey],
+    timeoutSeconds: 180,
+    memory: '512MiB',
+  },
+  investmentProjectionFlow
 );

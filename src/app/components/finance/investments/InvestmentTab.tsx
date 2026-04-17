@@ -39,9 +39,12 @@ import {
   Tooltip,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
+  Legend,
 } from 'recharts';
 import { toast } from 'sonner';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -70,6 +73,32 @@ import {
   calcAllProjections, calcPortfolioSummary,
 } from '../../../../services/investment-calculation-service';
 import type { InvestmentProjection, PortfolioSummary } from '../../../../services/investment-calculation-service';
+
+// ─── AI Projection types (mirrors functions/src/flows/investment-projection-flow.ts) ──
+
+interface AIProjectionPoint {
+  label: string;
+  date: string;
+  grossValue: number;
+  netValue: number;
+  earnings: number;
+  percent: number;
+}
+
+interface InvestmentProjectionOutput {
+  projectionPoints: AIProjectionPoint[];
+  annualYieldEffective: number;
+  monthlyYieldEffective: number;
+  irAliquot: number;
+  irValue: number;
+  netEarningsAtMaturity: number;
+  grossEarningsAtMaturity: number;
+  summary: string;
+  riskNote: string;
+  benchmarkComparison: string;
+}
+
+type AIProjectionState = InvestmentProjectionOutput | 'loading' | 'error';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -206,13 +235,17 @@ function RendaFixaCard({ item }: { item: RendaFixaItem }) {
 function InvestmentCard({
   investment,
   projection,
+  aiProjection,
   onDelete,
+  onAnalyze,
   expanded,
   onToggle,
 }: {
   investment: UserInvestment;
   projection?: InvestmentProjection;
+  aiProjection?: AIProjectionState;
   onDelete: (id: string) => void;
+  onAnalyze: () => void;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -304,28 +337,121 @@ function InvestmentCard({
                   </div>
                 </div>
 
+                {/* AI Projection section */}
                 <div>
-                  <p className="mb-2 text-xs font-semibold text-[var(--theme-muted-foreground)] uppercase tracking-wide">
-                    Projeções estimadas a partir de hoje
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {[
-                      { label: '30 dias', value: projection.projected30d, gain: projection.earnings30d },
-                      { label: '90 dias', value: projection.projected90d, gain: projection.earnings90d },
-                      { label: '180 dias', value: projection.projected180d, gain: projection.earnings180d },
-                      { label: '365 dias', value: projection.projected365d, gain: projection.earnings365d },
-                    ].map(({ label, value, gain }) => (
-                      <div key={label} className="rounded-lg bg-[var(--theme-background)] p-3 text-center">
-                        <p className="text-xs text-[var(--theme-muted-foreground)]">{label}</p>
-                        <p className="mt-1 font-bold text-[var(--theme-foreground)] tabular-nums">{fmt(value)}</p>
-                        <p className="text-xs text-green-600 font-medium tabular-nums">+{fmt(gain)}</p>
-                      </div>
-                    ))}
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[var(--theme-muted-foreground)] uppercase tracking-wide">
+                      Projeção até o vencimento (IA)
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-xs"
+                      onClick={(e) => { e.stopPropagation(); onAnalyze(); }}
+                      disabled={aiProjection === 'loading'}
+                    >
+                      {aiProjection === 'loading'
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Sparkles className="h-3 w-3 text-[var(--theme-accent)]" />}
+                      {aiProjection === 'loading' ? 'Analisando…' : (aiProjection && aiProjection !== 'error' ? 'Re-analisar' : 'Analisar com IA')}
+                    </Button>
                   </div>
-                  <p className="mt-2 flex items-center gap-1 text-[10px] text-[var(--theme-muted-foreground)]">
-                    <Info className="h-3 w-3" />
-                    Estimativas com base na taxa atual. Não representam garantia de retorno.
-                  </p>
+
+                  {!aiProjection && (
+                    <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-[var(--theme-border)] p-5 justify-center">
+                      <Brain className="h-5 w-5 text-[var(--theme-muted-foreground)] opacity-40 flex-shrink-0" />
+                      <p className="text-xs text-[var(--theme-muted-foreground)]">
+                        Clique em <strong>Analisar com IA</strong> para ver a projeção completa até o vencimento com cálculo de IR e comparação de mercado.
+                      </p>
+                    </div>
+                  )}
+
+                  {aiProjection === 'loading' && (
+                    <div className="flex items-center justify-center gap-3 py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-[var(--theme-accent)]" />
+                      <p className="text-xs text-[var(--theme-muted-foreground)]">Calculando projeção com IA…</p>
+                    </div>
+                  )}
+
+                  {aiProjection === 'error' && (
+                    <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
+                      <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      <p className="text-xs text-red-600">Não foi possível gerar a projeção. Clique em Re-analisar para tentar novamente.</p>
+                    </div>
+                  )}
+
+                  {aiProjection && aiProjection !== 'loading' && aiProjection !== 'error' && (
+                    <div className="space-y-3">
+                      {/* Chart: gross vs net */}
+                      <div className="h-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={aiProjection.projectionPoints} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="gradBlue" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+                            <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 10 }} width={48} />
+                            <Tooltip formatter={(v: any) => fmt(Number(v))} />
+                            <Legend iconSize={8} wrapperStyle={{ fontSize: 10 }} />
+                            <Line type="monotone" dataKey="grossValue" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} name="Bruto" />
+                            <Line type="monotone" dataKey="netValue" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} name="Líquido (IR)" strokeDasharray={aiProjection.irAliquot > 0 ? undefined : '0'} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Stats at maturity */}
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="rounded-lg bg-[var(--theme-background)] p-3">
+                          <p className="text-xs text-[var(--theme-muted-foreground)]">Rendimento bruto</p>
+                          <p className="mt-1 font-bold text-blue-600 tabular-nums">{fmt(aiProjection.grossEarningsAtMaturity)}</p>
+                        </div>
+                        <div className="rounded-lg bg-[var(--theme-background)] p-3">
+                          <p className="text-xs text-[var(--theme-muted-foreground)]">Rendimento líquido</p>
+                          <p className="mt-1 font-bold text-green-600 tabular-nums">{fmt(aiProjection.netEarningsAtMaturity)}</p>
+                        </div>
+                        <div className="rounded-lg bg-[var(--theme-background)] p-3">
+                          <p className="text-xs text-[var(--theme-muted-foreground)]">IR estimado</p>
+                          <p className="mt-1 font-bold text-[var(--theme-foreground)] tabular-nums">
+                            {aiProjection.irAliquot > 0
+                              ? `${aiProjection.irAliquot}% — ${fmt(aiProjection.irValue)}`
+                              : 'Isento de IR'}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-[var(--theme-background)] p-3">
+                          <p className="text-xs text-[var(--theme-muted-foreground)]">Taxa efetiva a.a.</p>
+                          <p className="mt-1 font-bold text-[var(--theme-foreground)] tabular-nums">
+                            {aiProjection.annualYieldEffective.toFixed(2)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* AI narrative */}
+                      <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-background)] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-muted-foreground)] mb-1">Resumo</p>
+                        <p className="text-xs text-[var(--theme-foreground)]">{aiProjection.summary}</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-background)] p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-muted-foreground)] mb-1">Risco e liquidez</p>
+                          <p className="text-xs text-[var(--theme-foreground)]">{aiProjection.riskNote}</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-background)] p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-muted-foreground)] mb-1">Comparação</p>
+                          <p className="text-xs text-[var(--theme-foreground)]">{aiProjection.benchmarkComparison}</p>
+                        </div>
+                      </div>
+
+                      <p className="flex items-center gap-1 text-[10px] text-[var(--theme-muted-foreground)]">
+                        <Info className="h-3 w-3" />
+                        Calculado pela IA com taxas de mercado atuais. Não constitui garantia de retorno.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -735,9 +861,12 @@ export function InvestmentTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  // AI
+  // AI portfolio insights
   const [aiInsights, setAiInsights] = useState<InvestmentAIInsight | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // AI per-investment projections
+  const [aiProjections, setAiProjections] = useState<Record<string, AIProjectionState>>({});
 
   // ─── Load on mount ──────────────────────────────────────────────────────────
 
@@ -859,6 +988,46 @@ export function InvestmentTab() {
     setInvestments((prev) => [inv, ...prev]);
   }, []);
 
+  const handleAnalyzeProjection = useCallback(async (investment: UserInvestment) => {
+    if (!marketData || !investment.id) return;
+    const id = investment.id;
+
+    setAiProjections((prev) => ({ ...prev, [id]: 'loading' }));
+    try {
+      const functions = getFunctions(app, 'us-central1');
+      const callFn = httpsCallable<Record<string, unknown>, InvestmentProjectionOutput>(
+        functions,
+        'investmentProjectionCallable'
+      );
+
+      const today = new Date().toISOString().split('T')[0];
+      const result = await callFn({
+        investmentName:   investment.name,
+        investmentType:   investment.type,
+        institution:      investment.institution || undefined,
+        investedAmount:   investment.investedAmount,
+        benchmarkType:    investment.benchmarkType,
+        benchmarkPercent: investment.benchmarkPercent,
+        fixedRateAnnual:  investment.fixedRateAnnual,
+        startDate:        investment.startDate,
+        maturityDate:     investment.maturityDate,
+        liquidity:        investment.liquidity,
+        ticker:           investment.ticker || undefined,
+        selicAnual:       marketData.selicAnual,
+        cdiAnual:         marketData.cdiAnual,
+        ipcaMensal:       marketData.ipcaMensal,
+        ipcaAnual:        marketData.ipcaAnual,
+        todayDate:        today,
+      });
+
+      setAiProjections((prev) => ({ ...prev, [id]: result.data }));
+    } catch (err) {
+      console.error('investmentProjectionCallable error:', err);
+      setAiProjections((prev) => ({ ...prev, [id]: 'error' }));
+      toast.error('Não foi possível gerar a projeção. Verifique se a Cloud Function está deployada.');
+    }
+  }, [marketData]);
+
   const handleGenerateAI = useCallback(async () => {
     if (!user?.uid || !marketData) return;
 
@@ -874,7 +1043,7 @@ export function InvestmentTab() {
 
       const marketText = `Selic: ${marketData.selicAnual.toFixed(2)}% a.a. | CDI: ${marketData.cdiAnual.toFixed(2)}% a.a. | IPCA mensal: ${marketData.ipcaMensal}% | USD/BRL: R$ ${marketData.usdBrl}`;
 
-      const functions = getFunctions(app, 'southamerica-east1');
+      const functions = getFunctions(app, 'us-central1');
       const callFn = httpsCallable<
         { portfolioSummary: string; marketSummary: string; totalInvested: number; selicAnual: number; cdiAnual: number },
         { cenario: string; insights: Array<{ titulo: string; descricao: string; tipo: string; icone: string }> }
@@ -1193,7 +1362,9 @@ export function InvestmentTab() {
                   key={inv.id}
                   investment={inv}
                   projection={projectionMap.get(inv.id!)}
+                  aiProjection={aiProjections[inv.id!]}
                   onDelete={handleDelete}
+                  onAnalyze={() => handleAnalyzeProjection(inv)}
                   expanded={expandedId === inv.id}
                   onToggle={() => setExpandedId((prev) => (prev === inv.id ? null : inv.id!))}
                 />
