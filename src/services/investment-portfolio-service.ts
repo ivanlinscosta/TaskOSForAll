@@ -12,7 +12,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   Timestamp,
   setDoc,
 } from 'firebase/firestore';
@@ -140,13 +139,16 @@ export async function deleteInvestment(id: string): Promise<void> {
 export async function listUserInvestments(): Promise<UserInvestment[]> {
   const uid = currentUidOrNull();
   if (!uid) return [];
+  // Sem orderBy para evitar exigência de índice composto no Firestore.
+  // Ordenação feita no cliente.
   const q = query(
     collection(db, COLLECTIONS.USER_INVESTMENTS),
-    where('ownerId', '==', uid),
-    orderBy('createdAt', 'desc')
+    where('ownerId', '==', uid)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => docToInvestment(d.id, d.data()));
+  const items = snap.docs.map((d) => docToInvestment(d.id, d.data()));
+  items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return items;
 }
 
 // ─── Daily snapshots ──────────────────────────────────────────────────────────
@@ -171,19 +173,20 @@ export async function getLatestDailySnapshots(
   const today = new Date().toISOString().split('T')[0];
   const result: Record<string, InvestmentDailySnapshot> = {};
 
-  // Fetch today's snapshot for each investment
   await Promise.all(
     investmentIds.map(async (id) => {
       const q = query(
         collection(db, COLLECTIONS.INVESTMENT_DAILY_SNAPSHOTS),
         where('investmentId', '==', id),
-        where('ownerId', '==', uid),
-        orderBy('date', 'desc')
+        where('ownerId', '==', uid)
       );
       const snap = await getDocs(q);
       if (!snap.empty) {
-        const d = snap.docs[0].data() as InvestmentDailySnapshot;
-        result[id] = { ...d, id: snap.docs[0].id };
+        // Sort client-side — avoids composite index requirement
+        const docs = snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as InvestmentDailySnapshot) }))
+          .sort((a, b) => (b.date > a.date ? 1 : -1));
+        result[id] = docs[0];
       }
     })
   );
@@ -211,13 +214,19 @@ export async function getLatestAIInsights(): Promise<InvestmentAIInsight | null>
   if (!uid) return null;
   const q = query(
     collection(db, COLLECTIONS.INVESTMENT_AI_INSIGHTS),
-    where('ownerId', '==', uid),
-    orderBy('createdAt', 'desc')
+    where('ownerId', '==', uid)
   );
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  const d = snap.docs[0].data() as InvestmentAIInsight;
-  return { ...d, id: snap.docs[0].id };
+  // Sort client-side — avoids composite index requirement
+  const sorted = snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as InvestmentAIInsight) }))
+    .sort((a, b) => {
+      const ta = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)?.toMillis?.() ?? 0;
+      const tb = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)?.toMillis?.() ?? 0;
+      return tb - ta;
+    });
+  return sorted[0];
 }
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
