@@ -11,7 +11,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase-config';
 
-const BRAPI_TOKEN = (import.meta as any).env?.VITE_BRAPI_TOKEN || 'demo';
+const BRAPI_TOKEN = import.meta.env.VITE_BRAPI_TOKEN || 'demo';
 const BRAPI_BASE = 'https://brapi.dev/api';
 const AWESOME_BASE = 'https://economia.awesomeapi.com.br/json';
 const BCB_BASE = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs';

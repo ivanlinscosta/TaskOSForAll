@@ -95,5 +95,26 @@ service cloud.firestore {
       allow read, update, delete: if isResourceOwner();
       allow create: if isOwnerField();
     }
+
+    // ── Investments module ────────────────────────────────────────────────────
+    match /user_investments/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /investment_daily_snapshots/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    match /investment_ai_insights/{docId} {
+      allow read, update, delete: if isResourceOwner();
+      allow create: if isOwnerField();
+    }
+
+    // Cache de mercado: qualquer usuário autenticado pode ler e escrever
+    match /investment_market_snapshots/{docId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }
