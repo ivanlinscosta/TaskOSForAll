@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Upload, FileText, Loader, Check, Landmark, Pencil,
   ArrowDownCircle, ArrowUpCircle,
@@ -38,8 +39,9 @@ type Step = 'upload' | 'loading' | 'review';
 
 interface TransacaoUI extends ExtratoTransacao {
   selected: boolean;
-  /** Tipo de gasto (apenas relevante para tipo='saida'). */
   tipoGasto: TipoCusto;
+  categoriaCustom?: string;
+  _sourceFile: string;
 }
 
 const fmt = formatCurrency;
@@ -53,6 +55,15 @@ function parseBrDate(br: string): Date {
   let ano = Number(parts[2]);
   if (ano < 100) ano += 2000;
   return new Date(ano, mes, dia);
+}
+
+function mkMonthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function mkMonthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
 export function ImportarExtratoDialog({
@@ -71,7 +82,11 @@ export function ImportarExtratoDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<'todas' | TipoTransacaoExtrato>('todas');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [loadingMsg, setLoadingMsg] = useState('');
+  const [activeMonthTab, setActiveMonthTab] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const txMonthKey = (t: TransacaoUI) => mkMonthKey(parseBrDate(t.data));
 
   const reset = () => {
     setStep('upload');
@@ -79,6 +94,8 @@ export function ImportarExtratoDialog({
     setTransacoes([]);
     setFiltroTipo('todas');
     setEditingIdx(null);
+    setLoadingMsg('');
+    setActiveMonthTab('all');
   };
 
   const handleClose = (v: boolean) => {
@@ -86,58 +103,89 @@ export function ImportarExtratoDialog({
     onOpenChange(v);
   };
 
-  const processFile = async (file: File) => {
-    const isPDF = file.name.toLowerCase().endsWith('.pdf');
-    const isText = /\.(txt|csv)$/i.test(file.name);
-    if (!isPDF && !isText) {
-      toast.error('Selecione um arquivo PDF, TXT ou CSV');
+  const processQueue = async (files: File[]) => {
+    const valid = files.filter(f => {
+      const n = f.name.toLowerCase();
+      return n.endsWith('.pdf') || n.endsWith('.txt') || n.endsWith('.csv');
+    });
+    if (valid.length === 0) {
+      toast.error('Selecione arquivos PDF, TXT ou CSV');
       return;
     }
     setStep('loading');
-    try {
-      const texto = isPDF ? await extractTextFromPDF(file) : await file.text();
-      const parsed = await parseExtrato(texto);
-      setResult(parsed);
-      setTransacoes(
-        parsed.transacoes
+    const allTransacoes: TransacaoUI[] = [];
+    let lastResult: ExtratoResult | null = null;
+
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i];
+      setLoadingMsg(`Processando ${file.name}${valid.length > 1 ? ` (${i + 1}/${valid.length})` : ''}…`);
+      try {
+        const isPDF = file.name.toLowerCase().endsWith('.pdf');
+        const texto = isPDF ? await extractTextFromPDF(file) : await file.text();
+        const parsed = await parseExtrato(texto);
+        lastResult = parsed;
+        const newTxs = parsed.transacoes
           .filter((t) => t.valor > 0)
           .map((t) => ({
             ...t,
             selected: true,
             tipoGasto: 'variavel' as TipoCusto,
-          })),
-      );
-      setStep('review');
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao processar o extrato. Verifique o arquivo e tente novamente.');
-      setStep('upload');
+            _sourceFile: file.name,
+          }));
+        allTransacoes.push(...newTxs);
+      } catch (err) {
+        console.error(err);
+        toast.error(`Erro ao processar ${file.name}`);
+      }
     }
+
+    if (allTransacoes.length === 0) {
+      toast.error('Nenhuma transação encontrada nos arquivos');
+      setStep('upload');
+      return;
+    }
+
+    if (lastResult) setResult(lastResult);
+    setTransacoes(allTransacoes);
+    setStep('review');
+    setLoadingMsg('');
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
+    if (e.target.files?.length) processQueue(Array.from(e.target.files));
     e.target.value = '';
   };
 
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  }, []);
-
-  const filtradas = filtroTipo === 'todas' ? transacoes : transacoes.filter((t) => t.tipo === filtroTipo);
+  const filtradas = transacoes.filter((t) => {
+    if (filtroTipo !== 'todas' && t.tipo !== filtroTipo) return false;
+    if (activeMonthTab !== 'all' && txMonthKey(t) !== activeMonthTab) return false;
+    return true;
+  });
 
   const toggleAll = (selected: boolean) =>
     setTransacoes((ts) =>
-      ts.map((t) => (filtroTipo === 'todas' || t.tipo === filtroTipo ? { ...t, selected } : t)),
+      ts.map((t) => {
+        const matchTipo = filtroTipo === 'todas' || t.tipo === filtroTipo;
+        const matchMonth = activeMonthTab === 'all' || txMonthKey(t) === activeMonthTab;
+        return matchTipo && matchMonth ? { ...t, selected } : t;
+      }),
     );
 
   const selecionadas = transacoes.filter((t) => t.selected);
   const totalEntradas = selecionadas.filter((t) => t.tipo === 'entrada').reduce((s, t) => s + t.valor, 0);
   const totalSaidas = selecionadas.filter((t) => t.tipo === 'saida').reduce((s, t) => s + t.valor, 0);
+
+  // Month tabs derived from all transactions
+  const monthTabs: Array<{ key: string; label: string; count: number }> = (() => {
+    const map = new Map<string, number>();
+    transacoes.forEach(t => {
+      const k = txMonthKey(t);
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, count]) => ({ key, label: mkMonthLabel(key), count }));
+  })();
 
   const handleImport = async () => {
     if (!result) return;
@@ -150,24 +198,28 @@ export function ImportarExtratoDialog({
       await Promise.all(
         selecionadas.map(async (t) => {
           const data = parseBrDate(t.data);
+          const baseNota = result.banco ? `Extrato — ${result.banco}` : 'Extrato bancário';
+          const notaComCat = t.categoriaCustom?.trim()
+            ? `${baseNota} · Categoria: ${t.categoriaCustom.trim()}`
+            : baseNota;
           if (t.tipo === 'saida') {
             await custosService.criarCusto({
               descricao: t.descricao,
               valor: t.valor,
-              categoria: (t.categoriaDespesa ?? 'outros') as CategoriaCusto,
+              categoria: (t.categoriaDespesa === 'personalizado' ? 'outros' : (t.categoriaDespesa ?? 'outros')) as CategoriaCusto,
               tipo: t.tipoGasto,
               origem: 'manual',
               data,
-              notas: result.banco ? `Extrato — ${result.banco}` : 'Extrato bancário',
+              notas: notaComCat,
             });
           } else {
             await criarReceita({
               descricao: t.descricao,
               valor: t.valor,
-              categoria: (t.categoriaReceita ?? 'outros') as CategoriaReceita,
+              categoria: (t.categoriaReceita === 'personalizado' ? 'outros' : (t.categoriaReceita ?? 'outros')) as CategoriaReceita,
               data,
               recorrente: false,
-              notas: result.banco ? `Extrato — ${result.banco}` : 'Extrato bancário',
+              notas: notaComCat,
             });
           }
         }),
@@ -198,29 +250,45 @@ export function ImportarExtratoDialog({
         {/* ── Step 1: Upload ── */}
         {step === 'upload' && (
           <div className="py-4 space-y-4">
+            {/* Input fora do Dialog via portal — evita interceptação do Radix */}
+            {createPortal(
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.csv"
+                multiple
+                onChange={onFileChange}
+                style={{ display: 'none' }}
+              />,
+              document.body
+            )}
+
             <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={onDrop}
               className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed py-14 cursor-pointer transition-all"
               style={{
                 borderColor: isDragging ? 'var(--theme-accent)' : 'var(--theme-border)',
                 background: isDragging ? 'var(--theme-hover)' : 'var(--theme-background-secondary)',
               }}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files.length) processQueue(Array.from(e.dataTransfer.files));
+              }}
             >
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
                 style={{ background: 'var(--theme-accent)20' }}
               >
                 <Upload className="h-7 w-7" style={{ color: 'var(--theme-accent)' }} />
               </div>
               <div className="text-center">
                 <p className="font-semibold text-[var(--theme-foreground)]">
-                  Arraste o extrato aqui
+                  Arraste os extratos aqui
                 </p>
                 <p className="text-sm text-[var(--theme-muted-foreground)] mt-1">
-                  ou clique para selecionar o arquivo
+                  ou clique para selecionar — você pode escolher vários arquivos de uma vez
                 </p>
               </div>
               <div className="flex gap-1.5">
@@ -229,13 +297,6 @@ export function ImportarExtratoDialog({
                 <Badge variant="outline" className="text-xs">CSV</Badge>
               </div>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt,.csv"
-              className="hidden"
-              onChange={onFileChange}
-            />
             <p className="text-xs text-center text-[var(--theme-muted-foreground)]">
               O Gemini identifica entradas e saídas automaticamente. Você pode ajustar antes de salvar.
             </p>
@@ -244,17 +305,25 @@ export function ImportarExtratoDialog({
 
         {/* ── Step 2: Loading ── */}
         {step === 'loading' && (
-          <AIProcessingIndicator
-            title="Analisando o extrato"
-            subtitle="Separando entradas e saídas automaticamente"
-            steps={[
-              'Lendo o documento…',
-              'Identificando transações…',
-              'Separando entradas e saídas…',
-              'Classificando por categoria…',
-              'Organizando os resultados…',
-            ]}
-          />
+          <div className="space-y-3">
+            {loadingMsg && (
+              <div className="rounded-lg px-4 py-2.5 text-sm font-medium text-center"
+                style={{ background: 'var(--theme-background-secondary)', color: 'var(--theme-accent)' }}>
+                {loadingMsg}
+              </div>
+            )}
+            <AIProcessingIndicator
+              title="Analisando os extratos"
+              subtitle="Separando entradas e saídas automaticamente"
+              steps={[
+                'Lendo o documento…',
+                'Identificando transações…',
+                'Separando entradas e saídas…',
+                'Classificando por categoria…',
+                'Organizando os resultados…',
+              ]}
+            />
+          </div>
         )}
 
         {/* ── Step 3: Review ── */}
@@ -282,12 +351,42 @@ export function ImportarExtratoDialog({
               </div>
             </div>
 
+            {/* ── Abas de mês ── */}
+            {monthTabs.length > 1 && (
+              <div className="space-y-1">
+                <p className="text-xs text-[var(--theme-muted-foreground)] font-medium px-0.5">Filtrar por mês</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setActiveMonthTab('all')}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={activeMonthTab === 'all'
+                      ? { background: 'var(--theme-accent)', color: '#fff' }
+                      : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
+                  >
+                    Todos ({transacoes.length})
+                  </button>
+                  {monthTabs.map(({ key, label, count }) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveMonthTab(key)}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={activeMonthTab === key
+                        ? { background: 'var(--theme-accent)', color: '#fff' }
+                        : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
+                    >
+                      {label} ({count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Filtro tipo */}
             <div className="flex gap-2 flex-wrap">
               {[
-                { key: 'todas', label: `Todas (${transacoes.length})`, color: '#6B7280' },
-                { key: 'entrada', label: `Entradas (${transacoes.filter(t => t.tipo === 'entrada').length})`, color: '#16A34A' },
-                { key: 'saida', label: `Saídas (${transacoes.filter(t => t.tipo === 'saida').length})`, color: '#EF4444' },
+                { key: 'todas', label: `Todas (${filtradas.length})`, color: '#6B7280' },
+                { key: 'entrada', label: `Entradas (${filtradas.filter(t => t.tipo === 'entrada').length})`, color: '#16A34A' },
+                { key: 'saida', label: `Saídas (${filtradas.filter(t => t.tipo === 'saida').length})`, color: '#EF4444' },
               ].map((f) => (
                 <button
                   key={f.key}
@@ -308,16 +407,16 @@ export function ImportarExtratoDialog({
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--theme-muted-foreground)]">
                   <input
                     type="checkbox"
-                    checked={filtradas.every((t) => t.selected)}
+                    checked={filtradas.length > 0 && filtradas.every((t) => t.selected)}
                     onChange={(e) => toggleAll(e.target.checked)}
                     className="h-4 w-4 rounded"
                   />
                   Selecionar todos ({filtradas.length})
                 </label>
                 <span className="text-xs text-[var(--theme-muted-foreground)]">
-                  <span className="text-green-600 font-semibold">+{fmt(totalEntradas)}</span>
+                  <span className="text-green-600 font-semibold">+{fmt(filtradas.filter(t => t.tipo === 'entrada' && t.selected).reduce((s,t)=>s+t.valor,0))}</span>
                   {' · '}
-                  <span className="text-red-500 font-semibold">-{fmt(totalSaidas)}</span>
+                  <span className="text-red-500 font-semibold">-{fmt(filtradas.filter(t => t.tipo === 'saida' && t.selected).reduce((s,t)=>s+t.valor,0))}</span>
                 </span>
               </div>
 
@@ -325,12 +424,16 @@ export function ImportarExtratoDialog({
                 const globalIdx = transacoes.indexOf(t);
                 const isEditing = editingIdx === globalIdx;
                 const isEntrada = t.tipo === 'entrada';
+                const catKey = isEntrada ? (t.categoriaReceita ?? 'outros') : (t.categoriaDespesa ?? 'outros');
                 const cor = isEntrada
-                  ? (CATEGORIAS_RECEITA_CORES[(t.categoriaReceita ?? 'outros') as CategoriaReceita] || '#16A34A')
-                  : (CATEGORIAS_DESPESA_CORES[(t.categoriaDespesa ?? 'outros') as CategoriaCusto] || '#EF4444');
-                const catLabel = isEntrada
+                  ? (CATEGORIAS_RECEITA_CORES[catKey as CategoriaReceita] || '#16A34A')
+                  : (catKey === 'personalizado' ? '#6B7280' : (CATEGORIAS_DESPESA_CORES[catKey as CategoriaCusto] || '#EF4444'));
+                const rawCatLabel = isEntrada
                   ? (CATEGORIAS_RECEITA_LABELS[(t.categoriaReceita ?? 'outros') as CategoriaReceita])
                   : (CATEGORIAS_DESPESA_LABELS[(t.categoriaDespesa ?? 'outros') as CategoriaCusto]);
+                const catLabel = (
+                  (isEntrada ? t.categoriaReceita : t.categoriaDespesa) === 'personalizado' && t.categoriaCustom?.trim()
+                ) ? t.categoriaCustom.trim() : rawCatLabel;
 
                 const updateField = (patch: Partial<TransacaoUI>) =>
                   setTransacoes((ts) => ts.map((tx, idx) => (idx === globalIdx ? { ...tx, ...patch } : tx)));
@@ -360,7 +463,6 @@ export function ImportarExtratoDialog({
                           value={t.tipo}
                           onValueChange={(v) => {
                             const novoTipo = v as TipoTransacaoExtrato;
-                            // Reset categories when flipping entry/exit type to avoid stale values
                             updateField({
                               tipo: novoTipo,
                               categoriaDespesa: novoTipo === 'saida' ? 'outros' : undefined,
@@ -385,42 +487,64 @@ export function ImportarExtratoDialog({
                       </div>
 
                       {t.tipo === 'saida' ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          <Select
-                            value={(t.categoriaDespesa ?? 'outros') as string}
-                            onValueChange={(v) => updateField({ categoriaDespesa: v as CategoriaCusto })}
-                          >
-                            <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(CATEGORIAS_DESPESA_LABELS).map(([k, label]) => (
-                                <SelectItem key={k} value={k}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={t.tipoGasto}
-                            onValueChange={(v) => updateField({ tipoGasto: v as TipoCusto })}
-                          >
-                            <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="variavel">Variável</SelectItem>
-                              <SelectItem value="fixa">Fixo</SelectItem>
-                              <SelectItem value="assinatura">Assinatura</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Select
+                              value={(t.categoriaDespesa ?? 'outros') as string}
+                              onValueChange={(v) => updateField({ categoriaDespesa: v as CategoriaCusto, categoriaCustom: v === 'personalizado' ? (t.categoriaCustom ?? '') : undefined })}
+                            >
+                              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(CATEGORIAS_DESPESA_LABELS).map(([k, label]) => (
+                                  <SelectItem key={k} value={k}>{label}</SelectItem>
+                                ))}
+                                <SelectItem value="personalizado">✏️ Personalizado…</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={t.tipoGasto}
+                              onValueChange={(v) => updateField({ tipoGasto: v as TipoCusto })}
+                            >
+                              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="variavel">Variável</SelectItem>
+                                <SelectItem value="fixa">Fixo</SelectItem>
+                                <SelectItem value="assinatura">Assinatura</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {t.categoriaDespesa === 'personalizado' && (
+                            <Input
+                              value={t.categoriaCustom ?? ''}
+                              onChange={(e) => updateField({ categoriaCustom: e.target.value })}
+                              placeholder="Nome da categoria (ex: Academia, Farmácia…)"
+                              className="text-sm"
+                            />
+                          )}
                         </div>
                       ) : (
-                        <Select
-                          value={(t.categoriaReceita ?? 'outros') as string}
-                          onValueChange={(v) => updateField({ categoriaReceita: v as CategoriaReceita })}
-                        >
-                          <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(CATEGORIAS_RECEITA_LABELS).map(([k, label]) => (
-                              <SelectItem key={k} value={k}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Select
+                            value={(t.categoriaReceita ?? 'outros') as string}
+                            onValueChange={(v) => updateField({ categoriaReceita: v as CategoriaReceita, categoriaCustom: v === 'personalizado' ? (t.categoriaCustom ?? '') : undefined })}
+                          >
+                            <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(CATEGORIAS_RECEITA_LABELS).map(([k, label]) => (
+                                <SelectItem key={k} value={k}>{label}</SelectItem>
+                              ))}
+                              <SelectItem value="personalizado">✏️ Personalizado…</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {t.categoriaReceita === 'personalizado' && (
+                            <Input
+                              value={t.categoriaCustom ?? ''}
+                              onChange={(e) => updateField({ categoriaCustom: e.target.value })}
+                              placeholder="Nome da categoria (ex: Bônus, Reembolso…)"
+                              className="text-sm"
+                            />
+                          )}
+                        </div>
                       )}
 
                       <div className="flex justify-end gap-2 pt-1">

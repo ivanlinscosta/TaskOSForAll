@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Upload, FileText, Loader, Check, CreditCard, Pencil } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -19,43 +20,86 @@ type Step = 'upload' | 'loading' | 'review';
 
 interface TransacaoUI extends faturaService.FaturaTransacao {
   selected: boolean;
-  /** Permite ao usuário ajustar o tipo de gasto (padrão variável). */
   tipo: custosService.TipoCusto;
+  /** Vencimento da fatura de origem — usado para parsear datas corretamente. */
+  _vencimento: string;
+  /** Nome do arquivo PDF de origem. */
+  _sourceFile: string;
 }
 
 const fmt = formatCurrency;
 
+const MONTH_NAMES: Record<string, number> = {
+  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+  jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
+  // English abbreviations sometimes appear in international cards
+  feb: 2, apr: 4, may: 5, aug: 8, sep: 9, oct: 10, dec: 12,
+};
+
+/** Normaliza "10/NOV", "10/novembro", "10-nov" → "10/11" */
+function normalizeDateStr(s: string): string {
+  const sep = s.includes('/') ? '/' : '-';
+  const parts = s.split(sep);
+  if (parts.length === 2) {
+    const monthPart = parts[1].toLowerCase().slice(0, 3);
+    const num = MONTH_NAMES[monthPart];
+    if (num) return `${parts[0]}/${String(num).padStart(2, '0')}`;
+  }
+  return s.replace(/-/g, '/');
+}
+
 function parseDateFromInvoice(dataStr: string, vencimento: string): Date {
-  // Tentar extrair ano do vencimento (DD/MM/AAAA)
   const partesVenc = vencimento.split('/');
   const anoVenc = partesVenc.length >= 3 ? parseInt(partesVenc[2], 10) : new Date().getFullYear();
   const mesVenc = partesVenc.length >= 2 ? parseInt(partesVenc[1], 10) : 1;
 
-  // Se a data veio no formato YYYY-MM-DD (ISO)
   if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
     return new Date(dataStr + 'T12:00:00');
   }
 
-  // Se a data veio no formato DD/MM/AAAA
-  const partes = dataStr.split('/');
+  const normalized = normalizeDateStr(dataStr);
+  const partes = normalized.split('/');
+
   if (partes.length >= 3) {
     const [d, m, a] = partes.map(Number);
     return new Date(a, m - 1, d);
   }
 
-  // Formato esperado: DD/MM (sem ano)
   if (partes.length === 2) {
     const [dia, mes] = partes.map(Number);
     if (!isNaN(dia) && !isNaN(mes)) {
-      // Se mês da transação > mês do vencimento, a compra é do ano anterior
       const ano = mes > mesVenc ? anoVenc - 1 : anoVenc;
       return new Date(ano, mes - 1, dia);
     }
   }
 
-  // Fallback: retornar data do vencimento
-  console.warn('[parseDateFromInvoice] Formato de data não reconhecido:', dataStr);
   return new Date(anoVenc, mesVenc - 1, parseInt(partesVenc[0], 10) || 1);
+}
+
+const SUBSCRIPTION_KEYWORDS = [
+  'netflix', 'spotify', 'disney', 'hbo', 'amazon prime', 'prime video',
+  'apple', 'microsoft', 'xbox', 'playstation', 'youtube', 'google one',
+  'dropbox', 'adobe', 'canva', 'figma', 'notion', 'slack', 'zoom',
+  'duolingo', 'deezer', 'globoplay', 'paramount', 'crunchyroll',
+  'nintendo', 'twitch', 'linkedin', 'chatgpt', 'openai', 'midjourney',
+  'github', 'office 365', 'office365', 'onedrive', 'icloud',
+  'kaspersky', 'mcafee', 'norton', 'avg', 'avast', 'bitdefender',
+  'expressvpn', 'nordvpn', 'surfshark',
+];
+
+function detectTipo(descricao: string): custosService.TipoCusto {
+  const d = descricao.toLowerCase();
+  if (SUBSCRIPTION_KEYWORDS.some(k => d.includes(k))) return 'assinatura';
+  return 'variavel';
+}
+
+function mkMonthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function mkMonthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
 export function ImportarFaturaDialog({
@@ -79,9 +123,10 @@ export function ImportarFaturaDialog({
   const [novaCategoriasExtras, setNovaCategoriasExtras] = useState<Record<string, string>>({});
   const [criandoCategoria, setCriandoCategoria] = useState<number | null>(null);
   const [novaCategoriaNome, setNovaCategoriaNome] = useState('');
+  const [loadingMsg, setLoadingMsg] = useState('');
+  const [activeMonthTab, setActiveMonthTab] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Slugify para criar chave estável a partir do label
   const slugCategoria = (label: string) =>
     'custom_' +
     label
@@ -98,8 +143,10 @@ export function ImportarFaturaDialog({
     cat;
 
   const corDaCategoria = (cat: string) =>
-    CATEGORIAS_CORES[cat as custosService.CategoriaCusto] ||
-    '#64748B'; // slate para categorias custom
+    CATEGORIAS_CORES[cat as custosService.CategoriaCusto] || '#64748B';
+
+  const txMonthKey = (t: TransacaoUI) =>
+    mkMonthKey(parseDateFromInvoice(t.data, t._vencimento || faturaResult?.vencimento || ''));
 
   const reset = () => {
     setStep('upload');
@@ -108,6 +155,9 @@ export function ImportarFaturaDialog({
     setFiltroCategoria('todas');
     setNomeCartao('');
     setNomeCartaoError(false);
+    setLoadingMsg('');
+    setActiveMonthTab('all');
+    setEditingIdx(null);
   };
 
   const handleClose = (v: boolean) => {
@@ -115,50 +165,65 @@ export function ImportarFaturaDialog({
     onOpenChange(v);
   };
 
-  const processFile = async (file: File) => {
-    if (!file.name.endsWith('.pdf')) {
-      toast.error('Selecione um arquivo PDF');
+  const processQueue = async (files: File[]) => {
+    const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (pdfs.length === 0) {
+      toast.error('Selecione arquivos PDF');
+      return;
+    }
+    setStep('loading');
+    const allTransacoes: TransacaoUI[] = [];
+    let lastResult: faturaService.FaturaResult | null = null;
+
+    for (let i = 0; i < pdfs.length; i++) {
+      const file = pdfs[i];
+      setLoadingMsg(`Processando ${file.name}${pdfs.length > 1 ? ` (${i + 1}/${pdfs.length})` : ''}…`);
+      try {
+        const text = await faturaService.extractTextFromPDF(file);
+        const result = await faturaService.parseFatura(text);
+        lastResult = result;
+        const newTxs = result.transacoes
+          .filter(t => t.valor > 0 || t.valor < 0)
+          .map(t => ({
+            ...t,
+            valor: Math.abs(t.valor),
+            selected: true,
+            // AI tipo takes priority; keyword detection as fallback
+            tipo: (t.tipo as custosService.TipoCusto) || detectTipo(t.descricao),
+            _vencimento: result.vencimento,
+            _sourceFile: file.name,
+          }));
+        allTransacoes.push(...newTxs);
+      } catch (err) {
+        console.error(err);
+        toast.error(`Erro ao processar ${file.name}`);
+      }
+    }
+
+    if (allTransacoes.length === 0) {
+      toast.error('Nenhuma transação encontrada nos arquivos');
+      setStep('upload');
       return;
     }
 
-    setStep('loading');
-    try {
-      const text = await faturaService.extractTextFromPDF(file);
-      const result = await faturaService.parseFatura(text);
-      setFaturaResult(result);
-      setTransacoes(
-        result.transacoes
-          .filter(t => t.valor > 0 || t.valor < 0)
-          .map(t => ({ ...t, valor: Math.abs(t.valor), selected: true, tipo: 'variavel' as custosService.TipoCusto }))
-      );
-      setStep('review');
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao processar a fatura. Verifique o arquivo e tente novamente.');
-      setStep('upload');
-    }
+    if (lastResult) setFaturaResult(lastResult);
+    setTransacoes(allTransacoes);
+    setStep('review');
+    setLoadingMsg('');
   };
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
+    if (e.target.files?.length) processQueue(Array.from(e.target.files));
     e.target.value = '';
   };
 
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  }, []);
-
   const toggleAll = (selected: boolean) =>
     setTransacoes(ts =>
-      ts.map(t =>
-        filtroCategoria === 'todas' || t.categoria === filtroCategoria
-          ? { ...t, selected }
-          : t
-      )
+      ts.map(t => {
+        const matchCat = filtroCategoria === 'todas' || t.categoria === filtroCategoria;
+        const matchMonth = activeMonthTab === 'all' || txMonthKey(t) === activeMonthTab;
+        return matchCat && matchMonth ? { ...t, selected } : t;
+      })
     );
 
   const handleImport = async () => {
@@ -189,7 +254,7 @@ export function ImportarFaturaDialog({
             origem: 'cartao',
             faturaId,
             nomeCartao: nomeCartao.trim() || undefined,
-            data: parseDateFromInvoice(t.data, faturaResult.vencimento),
+            data: parseDateFromInvoice(t.data, t._vencimento || faturaResult.vencimento),
             notas: t.isInternacional ? 'Compra internacional' : '',
           })
         )
@@ -204,9 +269,23 @@ export function ImportarFaturaDialog({
     }
   };
 
-  const filtradas = filtroCategoria === 'todas'
-    ? transacoes
-    : transacoes.filter(t => t.categoria === filtroCategoria);
+  // Month tabs derived from all transactions
+  const monthTabs: Array<{ key: string; label: string; count: number }> = (() => {
+    const map = new Map<string, number>();
+    transacoes.forEach(t => {
+      const k = txMonthKey(t);
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, count]) => ({ key, label: mkMonthLabel(key), count }));
+  })();
+
+  const filtradas = transacoes.filter(t => {
+    if (filtroCategoria !== 'todas' && t.categoria !== filtroCategoria) return false;
+    if (activeMonthTab !== 'all' && txMonthKey(t) !== activeMonthTab) return false;
+    return true;
+  });
 
   const selecionadasCount = transacoes.filter(t => t.selected).length;
   const totalSelecionado = transacoes.filter(t => t.selected).reduce((s, t) => s + t.valor, 0);
@@ -257,59 +336,76 @@ export function ImportarFaturaDialog({
               )}
             </div>
 
+            {/* Input fora do Dialog via portal — evita interceptação do Radix */}
+            {createPortal(
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                multiple
+                onChange={onFileChange}
+                style={{ display: 'none' }}
+              />,
+              document.body
+            )}
+
             <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={onDrop}
               className="flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed py-14 cursor-pointer transition-all"
               style={{
                 borderColor: isDragging ? 'var(--theme-accent)' : 'var(--theme-border)',
                 background: isDragging ? 'var(--theme-hover)' : 'var(--theme-background-secondary)',
               }}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={e => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files.length) processQueue(Array.from(e.dataTransfer.files));
+              }}
             >
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
                 style={{ background: 'var(--theme-accent)20' }}
               >
                 <Upload className="h-7 w-7" style={{ color: 'var(--theme-accent)' }} />
               </div>
               <div className="text-center">
                 <p className="font-semibold text-[var(--theme-foreground)]">
-                  Arraste o PDF da fatura aqui
+                  Arraste os PDFs das faturas aqui
                 </p>
                 <p className="text-sm text-[var(--theme-muted-foreground)] mt-1">
-                  ou clique para selecionar o arquivo
+                  ou clique para selecionar — você pode escolher vários arquivos de uma vez
                 </p>
               </div>
-              <Badge variant="outline" className="text-xs">Somente arquivos .PDF</Badge>
+              <Badge variant="outline" className="text-xs">Múltiplos arquivos .PDF</Badge>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              onChange={onFileChange}
-            />
             <p className="text-xs text-center text-[var(--theme-muted-foreground)]">
-              A fatura é processada pelo Gemini AI e não é armazenada permanentemente.
+              As faturas são processadas pelo Gemini AI e não são armazenadas permanentemente.
             </p>
           </div>
         )}
 
         {/* ── Step 2: Loading ── */}
         {step === 'loading' && (
-          <AIProcessingIndicator
-            title="Analisando sua fatura"
-            subtitle="O Gemini está classificando cada gasto"
-            steps={[
-              'Lendo o PDF…',
-              'Identificando transações…',
-              'Classificando categorias…',
-              'Detectando parcelamentos…',
-              'Organizando por tipo (fixo/variável)…',
-            ]}
-          />
+          <div className="space-y-3">
+            {loadingMsg && (
+              <div className="rounded-lg px-4 py-2.5 text-sm font-medium text-center"
+                style={{ background: 'var(--theme-background-secondary)', color: 'var(--theme-accent)' }}>
+                {loadingMsg}
+              </div>
+            )}
+            <AIProcessingIndicator
+              title="Analisando suas faturas"
+              subtitle="O Gemini está classificando cada gasto"
+              steps={[
+                'Lendo o PDF…',
+                'Identificando transações…',
+                'Classificando categorias…',
+                'Detectando parcelamentos…',
+                'Organizando por tipo (fixo/variável)…',
+              ]}
+            />
+          </div>
         )}
 
         {/* ── Step 3: Review ── */}
@@ -320,8 +416,8 @@ export function ImportarFaturaDialog({
               style={{ background: 'var(--theme-background-secondary)' }}
             >
               <div>
-                <p className="text-xs text-[var(--theme-muted-foreground)]">Total da fatura</p>
-                <p className="text-lg font-bold text-red-500">{fmt(faturaResult.totalFatura)}</p>
+                <p className="text-xs text-[var(--theme-muted-foreground)]">Total selecionado</p>
+                <p className="text-lg font-bold text-red-500">{fmt(totalSelecionado)}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--theme-muted-foreground)]">Vencimento</p>
@@ -333,6 +429,36 @@ export function ImportarFaturaDialog({
               </div>
             </div>
 
+            {/* ── Abas de mês ── */}
+            {monthTabs.length > 1 && (
+              <div className="space-y-1">
+                <p className="text-xs text-[var(--theme-muted-foreground)] font-medium px-0.5">Filtrar por mês</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setActiveMonthTab('all')}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={activeMonthTab === 'all'
+                      ? { background: 'var(--theme-accent)', color: '#fff' }
+                      : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
+                  >
+                    Todos ({transacoes.length})
+                  </button>
+                  {monthTabs.map(({ key, label, count }) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveMonthTab(key)}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={activeMonthTab === key
+                        ? { background: 'var(--theme-accent)', color: '#fff' }
+                        : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
+                    >
+                      {label} ({count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Filtro por categoria */}
             <div className="flex gap-2 flex-wrap">
               <button
@@ -342,7 +468,7 @@ export function ImportarFaturaDialog({
                   ? { background: 'var(--theme-accent)', color: '#fff' }
                   : { background: 'var(--theme-muted)', color: 'var(--theme-foreground)' }}
               >
-                Todas ({transacoes.length})
+                Todas ({filtradas.length})
               </button>
               {Object.entries(categoriasTotais)
                 .sort((a, b) => b[1].total - a[1].total)
@@ -369,7 +495,7 @@ export function ImportarFaturaDialog({
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--theme-muted-foreground)]">
                   <input
                     type="checkbox"
-                    checked={filtradas.every(t => t.selected)}
+                    checked={filtradas.length > 0 && filtradas.every(t => t.selected)}
                     onChange={e => toggleAll(e.target.checked)}
                     className="h-4 w-4 rounded"
                   />
@@ -399,6 +525,11 @@ export function ImportarFaturaDialog({
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-[var(--theme-muted-foreground)]">{t.data}</span>
+                        {t._sourceFile && (
+                          <span className="text-xs text-[var(--theme-muted-foreground)] ml-1 truncate max-w-[160px]">
+                            · {t._sourceFile}
+                          </span>
+                        )}
                         <span className="text-xs text-[var(--theme-muted-foreground)] ml-auto">Ajustar classificação</span>
                       </div>
                       <div className="space-y-2">

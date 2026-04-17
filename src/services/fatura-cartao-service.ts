@@ -21,6 +21,7 @@ export interface FaturaTransacao {
   data: string;
   descricao: string;
   categoria: CategoriaCusto;
+  tipo?: 'fixo' | 'variavel' | 'assinatura';
   valor: number;
   parcelaAtual: number | null;
   parcelaTotal: number | null;

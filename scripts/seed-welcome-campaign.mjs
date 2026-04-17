@@ -1,0 +1,100 @@
+import { initializeApp, applicationDefault } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+
+initializeApp({ credential: applicationDefault(), projectId: 'taskos-forall' });
+
+const db = getFirestore();
+
+const now = new Date();
+const startAt = Timestamp.fromDate(new Date('2025-01-01T00:00:00Z'));
+const endAt   = Timestamp.fromDate(new Date('2027-12-31T23:59:59Z'));
+
+const campaign = {
+  title: 'Bem-vindo ao TaskOS For All',
+  subtitle: 'Sua central de crescimento',
+  description: 'Conheça a plataforma e tudo que ela pode fazer por você.',
+  status: 'active',
+  audienceType: 'all',
+  audienceRules: {},
+  triggerPage: 'dashboard',
+  startAt,
+  endAt,
+  priority: 10,
+  dismissible: true,
+  repeatable: false,
+  version: '1',
+  themeVariant: 'launch',
+  createdBy: 'seed-script',
+  createdAt: Timestamp.fromDate(now),
+  updatedAt: Timestamp.fromDate(now),
+  steps: [
+    {
+      id: 'step-1',
+      order: 1,
+      title: 'Bem-vindo ao TaskOS For All',
+      description:
+        'Uma plataforma premium de organização pessoal, gestão financeira, evolução profissional e desenvolvimento de carreira — tudo em um único ecossistema inteligente.',
+      imageAsset: 'welcome_overview',
+      imageVariant: 'center',
+      accentColor: '#8B5CF6',
+      layoutVariant: 'default',
+      ctaLabel: 'Próximo',
+    },
+    {
+      id: 'step-2',
+      order: 2,
+      title: 'Perfil, Carreira e Vagas com IA',
+      description:
+        'Configure seu perfil profissional e a IA analisa suas habilidades, monta um diagnóstico de carreira e recomenda vagas aderentes ao seu objetivo.',
+      imageAsset: 'welcome_career',
+      imageVariant: 'center',
+      accentColor: '#6366F1',
+      layoutVariant: 'default',
+      ctaLabel: 'Próximo',
+    },
+    {
+      id: 'step-3',
+      order: 3,
+      title: 'Evolução Gamificada',
+      description:
+        'Acompanhe seu desenvolvimento com XP, níveis, streaks, badges e desafios. Transforme seus objetivos em uma jornada concreta de crescimento.',
+      imageAsset: 'welcome_gamification',
+      imageVariant: 'center',
+      accentColor: '#F59E0B',
+      layoutVariant: 'default',
+      ctaLabel: 'Próximo',
+    },
+    {
+      id: 'step-4',
+      order: 4,
+      title: 'Gestão Financeira Completa',
+      description:
+        'Organize cartões, faturas, despesas e receitas. Acompanhe investimentos, rentabilidade e receba insights financeiros gerados por IA.',
+      imageAsset: 'welcome_finance',
+      imageVariant: 'center',
+      accentColor: '#10B981',
+      layoutVariant: 'default',
+      ctaLabel: 'Próximo',
+    },
+    {
+      id: 'step-5',
+      order: 5,
+      title: 'Inteligência em Cada Etapa',
+      description:
+        'A IA do TaskOS interpreta seu perfil, sugere conteúdos, recomenda vagas, explica cenários financeiros e gera insights sobre seu progresso — tudo personalizado para você.',
+      imageAsset: 'welcome_ai',
+      imageVariant: 'center',
+      accentColor: '#0EA5E9',
+      layoutVariant: 'default',
+      ctaLabel: 'Começar agora',
+    },
+  ],
+};
+
+const docId = 'welcome-v1';
+await db.collection('guided_tour_campaigns').doc(docId).set(campaign);
+console.log(`✅ Campanha "${docId}" criada com sucesso no Firestore.`);
+console.log(`\n👉 Ative no Remote Config:`);
+console.log(`   guided_tour_enabled = true`);
+console.log(`   guided_tour_active_campaign_id = ${docId}`);
+process.exit(0);

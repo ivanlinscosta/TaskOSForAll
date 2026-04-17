@@ -28,6 +28,7 @@ import {
 } from '../../services/gamification-service';
 import { carregarAnaliseCarreira, type CarreiraAnalise } from '../../services/carreira-service';
 import { LevelProgress } from '../components/gamification/LevelProgress';
+import { GuidedTourLauncher } from '../components/tours/GuidedTourLauncher';
 import { formatCurrency } from '../../lib/utils';
 import { toast } from 'sonner';
 
@@ -122,6 +123,9 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Guided tour — auto-opens when an active campaign exists */}
+      <GuidedTourLauncher />
+
       {/* ── Hero ── */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.45fr_0.95fr]">
         <div className="rounded-[32px] border border-[var(--theme-border)] bg-[var(--theme-card)] p-7 shadow-sm">

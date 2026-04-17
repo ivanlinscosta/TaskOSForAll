@@ -1,0 +1,84 @@
+<svg viewBox="0 0 320 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="160" cy="145" rx="125" ry="105" fill="url(#financeGlow)" opacity="0.22"/>
+
+  <!-- Main card -->
+  <rect x="52" y="72" width="160" height="96" rx="14" fill="url(#cardBlue)"/>
+  <rect x="52" y="72" width="160" height="96" rx="14" fill="none" stroke="#34D399" stroke-width="1" opacity="0.35"/>
+  <!-- Card shine -->
+  <ellipse cx="90" cy="88" rx="30" ry="12" fill="white" opacity="0.06" transform="rotate(-20 90 88)"/>
+  <!-- Card chip -->
+  <rect x="70" y="92" width="22" height="16" rx="4" fill="#6EE7B7" opacity="0.5"/>
+  <line x1="70" y1="100" x2="92" y2="100" stroke="#10B981" stroke-width="1" opacity="0.6"/>
+  <line x1="81" y1="92" x2="81" y2="108" stroke="#10B981" stroke-width="1" opacity="0.6"/>
+  <!-- Card label -->
+  <text x="70" y="130" fill="white" font-size="8" font-family="system-ui" font-weight="600" opacity="0.7" letter-spacing="2">•••• •••• 4271</text>
+  <text x="70" y="148" fill="white" font-size="7" font-family="system-ui" opacity="0.5">Crédito · Mastercard</text>
+  <!-- Card logo circles -->
+  <circle cx="186" cy="88" r="10" fill="#F59E0B" opacity="0.7"/>
+  <circle cx="198" cy="88" r="10" fill="#EF4444" opacity="0.6"/>
+
+  <!-- Second card (peeking behind) -->
+  <rect x="108" y="58" width="160" height="96" rx="14" fill="url(#cardGreen)" opacity="0.6"/>
+  <rect x="108" y="58" width="160" height="96" rx="14" fill="none" stroke="#6EE7B7" stroke-width="1" opacity="0.25"/>
+
+  <!-- Expense breakdown panel -->
+  <rect x="52" y="182" width="216" height="68" rx="12" fill="url(#panelBg)" opacity="0.9"/>
+  <rect x="52" y="182" width="216" height="68" rx="12" fill="none" stroke="#10B981" stroke-width="1" opacity="0.25"/>
+
+  <!-- Row 1 -->
+  <circle cx="72" cy="200" r="7" fill="#10B981" opacity="0.8"/>
+  <text x="72" y="203.5" text-anchor="middle" fill="white" font-size="7">🍔</text>
+  <text x="86" y="203" fill="#D1FAE5" font-size="7" font-family="system-ui">Alimentação</text>
+  <text x="252" y="203" text-anchor="end" fill="#6EE7B7" font-size="7.5" font-family="system-ui" font-weight="700">R$ 420</text>
+
+  <!-- Divider -->
+  <line x1="64" y1="210" x2="256" y2="210" stroke="#10B981" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- Row 2 -->
+  <circle cx="72" cy="222" r="7" fill="#6366F1" opacity="0.8"/>
+  <text x="72" y="225.5" text-anchor="middle" fill="white" font-size="7">📱</text>
+  <text x="86" y="225" fill="#D1FAE5" font-size="7" font-family="system-ui">Assinaturas</text>
+  <text x="252" y="225" text-anchor="end" fill="#6EE7B7" font-size="7.5" font-family="system-ui" font-weight="700">R$ 185</text>
+
+  <!-- Divider -->
+  <line x1="64" y1="232" x2="256" y2="232" stroke="#10B981" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- Row 3 -->
+  <circle cx="72" cy="244" r="7" fill="#F59E0B" opacity="0.8"/>
+  <text x="72" y="247.5" text-anchor="middle" fill="white" font-size="7">📈</text>
+  <text x="86" y="247" fill="#D1FAE5" font-size="7" font-family="system-ui">Investimentos</text>
+  <text x="252" y="247" text-anchor="end" fill="#34D399" font-size="7.5" font-family="system-ui" font-weight="700">+ R$ 890</text>
+
+  <!-- Floating coin badge -->
+  <circle cx="272" cy="110" r="20" fill="url(#coinGrad)"/>
+  <circle cx="272" cy="110" r="20" fill="none" stroke="#FDE68A" stroke-width="1.5" opacity="0.5"/>
+  <text x="272" y="106" text-anchor="middle" fill="white" font-size="11" font-family="system-ui" font-weight="900">R$</text>
+  <text x="272" y="117" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">Saldo</text>
+
+  <!-- Sparkles -->
+  <path d="M40 105 L41.5 100 L43 105 L48 106.5 L43 108 L41.5 113 L40 108 L35 106.5 Z" fill="#6EE7B7" opacity="0.6"/>
+  <path d="M264 172 L265 169 L266 172 L269 173 L266 174 L265 177 L264 174 L261 173 Z" fill="#34D399" opacity="0.5"/>
+
+  <defs>
+    <radialGradient id="financeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cardBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#065F46"/>
+      <stop offset="100%" stop-color="#064E3B"/>
+    </linearGradient>
+    <linearGradient id="cardGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="100%" stop-color="#065F46"/>
+    </linearGradient>
+    <linearGradient id="panelBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#064E3B" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#022C22" stop-opacity="0.85"/>
+    </linearGradient>
+    <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </radialGradient>
+  </defs>
+</svg>

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
   BarChart3,
+  ChevronDown,
+  ChevronRight,
   CreditCard,
   Filter,
   Landmark,
@@ -41,14 +43,16 @@ import { useAuth } from '../../../lib/auth-context';
 import { createOwnedRecord, listWorkspaceEntity } from '../../../services/forall-data-service';
 import { COLLECTIONS } from '../../../lib/firebase-config';
 import { CATEGORIAS_ORCAMENTO_LABELS, listarViagens } from '../../../services/viagens-service';
-import { listarCustos, deletarCusto } from '../../../services/custos-service';
+import { listarCustos, deletarCusto, atualizarCusto } from '../../../services/custos-service';
 import { toast } from 'sonner';
 import { CartaoTab } from './CartaoTab';
 import { InvestmentTab } from '../../components/finance/investments/InvestmentTab';
 import { ImportarFaturaDialog } from '../../components/ImportarFaturaDialog';
 import { ImportarExtratoDialog } from '../../components/ImportarExtratoDialog';
-import { listarReceitas, deletarReceita } from '../../../services/receitas-service';
+import { listarReceitas, deletarReceita, atualizarReceita } from '../../../services/receitas-service';
+import { listUserInvestments } from '../../../services/investment-portfolio-service';
 import { formatCurrency } from '../../../lib/utils';
+import { InsightsPanel } from '../../components/InsightsPanel';
 
 const COLORS = ['#16A34A', '#EF4444', '#F59E0B', '#8B5CF6', '#3B82F6', '#EC4899'];
 
@@ -89,12 +93,20 @@ export function ForAllFinancePage() {
   const [custos, setCustos] = useState<any[]>([]);
   const [importarFaturaOpen, setImportarFaturaOpen] = useState(false);
   const [importarExtratoOpen, setImportarExtratoOpen] = useState(false);
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   const [expenseDialog, setExpenseDialog] = useState(false);
   const [revenueDialog, setRevenueDialog] = useState(false);
 
-  // Mês selecionado no filtro ('all' = todos, caso contrário 'YYYY-MM')
-  const [monthFilter, setMonthFilter] = useState<string>('all');
+  // Meses selecionados no filtro (mês atual por padrão)
+  const currentMonthKey = useMemo(() => monthKey(new Date()), []);
+  const [monthFilters, setMonthFilters] = useState<Set<string>>(() => {
+    const now = new Date();
+    return new Set([`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`]);
+  });
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
 
   // Busca nas abas despesas/receitas
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,8 +115,6 @@ export function ForAllFinancePage() {
   const [perfilDialog, setPerfilDialog] = useState(false);
   const [perfilForm, setPerfilForm] = useState({
     rendaMensal: '',
-    reservaEmergencia: '',
-    totalInvestido: '',
     perfilInvestidor: 'indefinido' as 'conservador' | 'moderado' | 'arrojado' | 'indefinido',
   });
   const [savingPerfil, setSavingPerfil] = useState(false);
@@ -129,6 +139,13 @@ export function ForAllFinancePage() {
   // Filtro de categoria na aba de despesas
   const [despesaFilter, setDespesaFilter] = useState<string>('todas');
 
+  // Popup de detalhes dos cards fixo/assinatura/variavel
+  const [detailsPanel, setDetailsPanel] = useState<'fixo' | 'assinatura' | 'variavel' | null>(null);
+
+  // Edição de despesas e receitas
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editingRevenueId, setEditingRevenueId] = useState<string | null>(null);
+
   useEffect(() => {
     void loadData();
   }, [user?.uid, workspace]);
@@ -137,27 +154,43 @@ export function ForAllFinancePage() {
     if (!user?.uid) return;
     try {
       setIsLoading(true);
-      const [financeData, tripData, custosData] = await Promise.all([
+      const [financeData, tripData, custosData, receitasData, investmentsData] = await Promise.all([
         listWorkspaceEntity(user.uid, 'finance', workspace === 'work' ? 'work' : 'life'),
         listarViagens(),
         listarCustos(),
+        listarReceitas(),
+        listUserInvestments(),
       ]);
 
       const expenseItems = financeData.filter((item) => item.collectionName === COLLECTIONS.CUSTOS);
-      const revenueItems = financeData.filter((item) => item.collectionName === COLLECTIONS.RECEITAS);
+
+      // Usa listarReceitas() para garantir que receitas do extrato (sem workspaceType) também apareçam
+      const revenueItems = receitasData.map(r => ({
+        id: r.id,
+        collectionName: COLLECTIONS.RECEITAS,
+        descricao: r.descricao,
+        valor: r.valor,
+        categoria: r.categoria,
+        data: r.data,
+        natureza: 'receita',
+        recorrente: r.recorrente,
+        notas: r.notas,
+      }));
 
       setExpenses(expenseItems);
       setRevenues(revenueItems);
       setTrips(tripData);
       setCustos(custosData);
+      setInvestments(investmentsData);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteFatura = async (ids: string[], _key: string) => {
+    if (!confirm(`Excluir esta fatura? (${ids.length} lançamentos serão removidos)`)) return;
     try {
-      await Promise.all(ids.map(id => deletarCusto(id)));
+      await Promise.all(ids.filter(Boolean).map(id => deletarCusto(id)));
       setCustos(prev => prev.filter(c => !ids.includes(c.id)));
       toast.success('Fatura excluída');
     } catch {
@@ -188,30 +221,56 @@ export function ForAllFinancePage() {
     }
   };
 
+  const handleEditExpense = (item: any) => {
+    setEditingExpenseId(item.id);
+    const dataStr = item.data instanceof Date
+      ? item.data.toISOString().split('T')[0]
+      : typeof item.data === 'string' ? item.data.slice(0, 10)
+      : new Date().toISOString().split('T')[0];
+    setExpenseForm({
+      descricao: item.descricao || '',
+      valor: String(item.valor || ''),
+      categoria: item.categoria || 'outros',
+      tipoGasto: (item.tipoGasto || 'variavel') as ExpenseType,
+      natureza: 'despesa',
+      data: dataStr,
+    });
+    setExpenseDialog(true);
+  };
+
+  const handleEditRevenue = (item: any) => {
+    setEditingRevenueId(item.id);
+    const dataStr = item.data instanceof Date
+      ? item.data.toISOString().split('T')[0]
+      : typeof item.data === 'string' ? item.data.slice(0, 10)
+      : new Date().toISOString().split('T')[0];
+    setRevenueForm({
+      descricao: item.descricao || '',
+      valor: String(item.valor || ''),
+      categoria: item.categoria || 'salario',
+      data: dataStr,
+      recorrente: item.recorrente || false,
+    });
+    setRevenueDialog(true);
+  };
+
   // Sincroniza o form de edição do perfil com o userProfile atual
   useEffect(() => {
     const fn = userProfile?.financas;
     setPerfilForm({
-      rendaMensal:         fn?.rendaMensal != null ? String(fn.rendaMensal) : '',
-      reservaEmergencia:   fn?.reservaEmergencia != null ? String(fn.reservaEmergencia) : '',
-      totalInvestido:      fn?.totalInvestido != null ? String(fn.totalInvestido) : '',
-      perfilInvestidor:    fn?.perfilInvestidor ?? 'indefinido',
+      rendaMensal:      fn?.rendaMensal != null ? String(fn.rendaMensal) : '',
+      perfilInvestidor: fn?.perfilInvestidor ?? 'indefinido',
     });
-  }, [userProfile?.financas?.rendaMensal, userProfile?.financas?.reservaEmergencia, userProfile?.financas?.totalInvestido, userProfile?.financas?.perfilInvestidor]);
+  }, [userProfile?.financas?.rendaMensal, userProfile?.financas?.perfilInvestidor]);
 
   const handleSavePerfil = async () => {
     try {
       setSavingPerfil(true);
       const renda = Number(perfilForm.rendaMensal.replace(',', '.')) || 0;
-      const reserva = perfilForm.reservaEmergencia === '' ? undefined : Number(perfilForm.reservaEmergencia.replace(',', '.')) || 0;
-      const invest = perfilForm.totalInvestido === '' ? undefined : Number(perfilForm.totalInvestido.replace(',', '.')) || 0;
-
       const prevFn = userProfile?.financas;
       await updateUserProfileData({
         financas: {
           rendaMensal: renda,
-          reservaEmergencia: reserva,
-          totalInvestido: invest,
           perfilInvestidor: perfilForm.perfilInvestidor,
           objetivosFinanceiros: prevFn?.objetivosFinanceiros ?? [],
           jaInveste: prevFn?.jaInveste,
@@ -237,6 +296,33 @@ export function ForAllFinancePage() {
     const valor = Number(String(expenseForm.valor).replace(',', '.'));
     if (Number.isNaN(valor)) {
       toast.error('Informe um valor válido');
+      return;
+    }
+
+    // Edit mode
+    if (editingExpenseId) {
+      try {
+        await atualizarCusto(editingExpenseId, {
+          descricao: expenseForm.descricao,
+          valor,
+          categoria: expenseForm.categoria as any,
+          tipo: expenseForm.tipoGasto as any,
+          data: new Date(expenseForm.data),
+        });
+        setCustos(prev => prev.map(c => c.id === editingExpenseId
+          ? { ...c, descricao: expenseForm.descricao, valor, categoria: expenseForm.categoria, tipo: expenseForm.tipoGasto, data: expenseForm.data }
+          : c));
+        setExpenses(prev => prev.map(e => e.id === editingExpenseId
+          ? { ...e, descricao: expenseForm.descricao, valor, categoria: expenseForm.categoria, tipoGasto: expenseForm.tipoGasto, data: expenseForm.data }
+          : e));
+        toast.success('Despesa atualizada');
+      } catch {
+        toast.error('Erro ao atualizar despesa');
+      } finally {
+        setEditingExpenseId(null);
+        setExpenseDialog(false);
+        setExpenseForm({ descricao: '', valor: '', categoria: 'outros', tipoGasto: 'variavel', natureza: 'despesa', data: new Date().toISOString().split('T')[0] });
+      }
       return;
     }
 
@@ -308,6 +394,30 @@ export function ForAllFinancePage() {
     const valor = Number(String(revenueForm.valor).replace(',', '.'));
     if (Number.isNaN(valor)) {
       toast.error('Informe um valor válido');
+      return;
+    }
+
+    // Edit mode
+    if (editingRevenueId) {
+      try {
+        await atualizarReceita(editingRevenueId, {
+          descricao: revenueForm.descricao,
+          valor,
+          categoria: revenueForm.categoria as any,
+          data: new Date(revenueForm.data),
+          recorrente: revenueForm.recorrente,
+        });
+        setRevenues(prev => prev.map(r => r.id === editingRevenueId
+          ? { ...r, descricao: revenueForm.descricao, valor, categoria: revenueForm.categoria, data: revenueForm.data, recorrente: revenueForm.recorrente }
+          : r));
+        toast.success('Receita atualizada');
+      } catch {
+        toast.error('Erro ao atualizar receita');
+      } finally {
+        setEditingRevenueId(null);
+        setRevenueDialog(false);
+        setRevenueForm({ descricao: '', valor: '', categoria: 'salario', data: new Date().toISOString().split('T')[0], recorrente: false });
+      }
       return;
     }
 
@@ -412,7 +522,9 @@ export function ForAllFinancePage() {
       origem: c.origem,
       nomeCartao: c.nomeCartao,
       faturaId: c.faturaId,
+      notas: c.notas,
       _isCartao: c.origem === 'cartao',
+      _isExtrato: c.origem !== 'cartao' && String(c.notas || '').startsWith('Extrato'),
     }));
   }, [custos]);
 
@@ -439,43 +551,44 @@ export function ForAllFinancePage() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [allExpensesUnfiltered, revenues]);
 
-  // Aplica filtro de mês
+  // Aplica filtro de mês (conjunto vazio = todos)
   const inSelectedMonth = (item: any) =>
-    monthFilter === 'all' || monthKey(item.data) === monthFilter;
+    monthFilters.size === 0 || monthFilters.has(monthKey(item.data));
 
   const allExpenses = useMemo(
     () => allExpensesUnfiltered.filter(inSelectedMonth),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allExpensesUnfiltered, monthFilter]
+    [allExpensesUnfiltered, monthFilters]
   );
   const revenuesFiltered = useMemo(
     () => revenues.filter(inSelectedMonth),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [revenues, monthFilter]
+    [revenues, monthFilters]
   );
   const mergedManualFiltered = useMemo(
     () => mergedManualExpenses.filter(inSelectedMonth),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mergedManualExpenses, monthFilter]
+    [mergedManualExpenses, monthFilters]
   );
   const travelFiltered = useMemo(
     () => travelExpenses.filter(inSelectedMonth),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [travelExpenses, monthFilter]
+    [travelExpenses, monthFilters]
   );
 
   const travelTotal = travelFiltered.reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const revenueTotal = revenuesFiltered.reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const expenseTotal = allExpenses.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  // Exclui lançamentos de cartão — o pagamento da fatura já vem pelo extrato
+  const expenseTotal = allExpenses.filter(item => !item._isCartao).reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const balance = revenueTotal - expenseTotal;
-  const fixedTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'fixo').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const fixedTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'fixo' && !item._isCartao).reduce((sum, item) => sum + Number(item.valor || 0), 0);
   const subscriptionTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'assinatura').reduce((sum, item) => sum + Number(item.valor || 0), 0);
-  const variableTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'variavel').reduce((sum, item) => sum + Number(item.valor || 0), 0);
+  const variableTotal = mergedManualFiltered.filter((item) => item.tipoGasto === 'variavel' && !item._isCartao).reduce((sum, item) => sum + Number(item.valor || 0), 0);
 
-  // Gasto médio mensal — calculado dinamicamente a partir do histórico completo
+  // Gasto médio mensal — calculado dinamicamente a partir do histórico completo (excl. cartão)
   const gastoMedioMensal = useMemo(() => {
     const byMonth = new Map<string, number>();
-    allExpensesUnfiltered.forEach((i) => {
+    allExpensesUnfiltered.filter(i => !i._isCartao).forEach((i) => {
       const k = monthKey(i.data);
       if (!k) return;
       byMonth.set(k, (byMonth.get(k) || 0) + Number(i.valor || 0));
@@ -484,6 +597,25 @@ export function ForAllFinancePage() {
     const total = [...byMonth.values()].reduce((a, b) => a + b, 0);
     return total / byMonth.size;
   }, [allExpensesUnfiltered]);
+
+  // Total investido real — soma dos investimentos cadastrados
+  const totalInvestidoReal = useMemo(
+    () => investments.reduce((s: number, i: any) => s + Number(i.investedAmount || 0), 0),
+    [investments]
+  );
+
+  // Renda média mensal — calculada a partir do histórico de receitas
+  const rendaMediaMensal = useMemo(() => {
+    const byMonth = new Map<string, number>();
+    revenues.forEach((r) => {
+      const k = monthKey(r.data);
+      if (!k) return;
+      byMonth.set(k, (byMonth.get(k) || 0) + Number(r.valor || 0));
+    });
+    if (byMonth.size === 0) return 0;
+    const total = [...byMonth.values()].reduce((a, b) => a + b, 0);
+    return total / byMonth.size;
+  }, [revenues]);
 
   // Busca nas listas (tabs despesas/receitas)
   const matchesSearch = (item: any) => {
@@ -546,10 +678,6 @@ export function ForAllFinancePage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" className="gap-2" onClick={() => navigate(`/chat?action=gasto&workspace=${workspace}`)}>
-            <Sparkles className="h-4 w-4" />
-            Chat guiado
-          </Button>
           <Button variant="outline" className="gap-2" onClick={() => setImportarFaturaOpen(true)}>
             <CreditCard className="h-4 w-4" />
             Importar Fatura
@@ -583,10 +711,13 @@ export function ForAllFinancePage() {
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
-            <p className="text-xs text-[var(--theme-muted-foreground)]">Renda mensal</p>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Renda média mensal</p>
             <p className="text-lg font-bold text-[var(--theme-foreground)]">
-              {toCurrency(userProfile?.financas?.rendaMensal || 0)}
+              {toCurrency(rendaMediaMensal || userProfile?.financas?.rendaMensal || 0)}
             </p>
+            {rendaMediaMensal > 0 && (
+              <p className="text-[10px] text-[var(--theme-muted-foreground)]">calculada</p>
+            )}
           </div>
           <div>
             <p className="text-xs text-[var(--theme-muted-foreground)]">Gasto médio mensal</p>
@@ -594,21 +725,17 @@ export function ForAllFinancePage() {
             <p className="text-[10px] text-[var(--theme-muted-foreground)]">calculado</p>
           </div>
           <div>
-            <p className="text-xs text-[var(--theme-muted-foreground)]">Reserva emergencial</p>
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Total investido</p>
             <p className="text-lg font-bold text-[var(--theme-foreground)]">
-              {toCurrency(userProfile?.financas?.reservaEmergencia || 0)}
+              {toCurrency(totalInvestidoReal)}
             </p>
+            <p className="text-[10px] text-[var(--theme-muted-foreground)]">da carteira</p>
           </div>
           <div>
-            <p className="text-xs text-[var(--theme-muted-foreground)]">Investimentos</p>
-            <p className="text-lg font-bold text-[var(--theme-foreground)]">
-              {toCurrency(userProfile?.financas?.totalInvestido || 0)}
+            <p className="text-xs text-[var(--theme-muted-foreground)]">Perfil investidor</p>
+            <p className="text-lg font-bold text-[var(--theme-foreground)] capitalize">
+              {userProfile?.financas?.perfilInvestidor || 'Indefinido'}
             </p>
-            {userProfile?.financas?.perfilInvestidor && (
-              <p className="text-[10px] text-[var(--theme-muted-foreground)] capitalize">
-                perfil {userProfile.financas.perfilInvestidor}
-              </p>
-            )}
           </div>
           {userProfile?.financas?.objetivosFinanceiros?.length ? (
             <div className="col-span-2 md:col-span-4">
@@ -625,24 +752,78 @@ export function ForAllFinancePage() {
         </CardContent>
       </Card>
 
-      {/* ── Filtro de mês ── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Label className="text-sm">Filtrar por mês:</Label>
-        <Select value={monthFilter} onValueChange={setMonthFilter}>
-          <SelectTrigger className="h-9 w-[220px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os meses</SelectItem>
-            {availableMonths.map((k) => (
-              <SelectItem key={k} value={k}>
-                {monthLabelFromKey(k)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {monthFilter !== 'all' && (
-          <Button variant="ghost" size="sm" className="h-9" onClick={() => setMonthFilter('all')}>
+      {/* ── Filtro de mês (multi-seleção) ── */}
+      <div className="flex items-center gap-3">
+        <Label className="text-sm flex-shrink-0">Filtrar por mês:</Label>
+        <div ref={monthDropdownRef} className="relative">
+          <button
+            onClick={() => setMonthDropdownOpen(o => !o)}
+            className="flex h-9 min-w-[200px] items-center justify-between gap-2 rounded-md border px-3 text-sm transition-colors hover:bg-[var(--theme-hover)]"
+            style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-card)', color: 'var(--theme-foreground)' }}
+          >
+            <span>
+              {monthFilters.size === 0
+                ? 'Todos os meses'
+                : monthFilters.size === 1 && monthFilters.has(currentMonthKey)
+                  ? 'Mês atual'
+                  : monthFilters.size === 1
+                    ? monthLabelFromKey([...monthFilters][0])
+                    : `${monthFilters.size} meses selecionados`}
+            </span>
+            <ChevronDown className="h-4 w-4 text-[var(--theme-muted-foreground)] flex-shrink-0" />
+          </button>
+
+          {monthDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMonthDropdownOpen(false)} />
+              <div
+                className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border shadow-lg overflow-hidden"
+                style={{ background: 'var(--theme-card)', borderColor: 'var(--theme-border)' }}
+              >
+                {/* Todos */}
+                <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2.5 text-sm font-medium hover:bg-[var(--theme-hover)] border-b" style={{ borderColor: 'var(--theme-border)' }}>
+                  <input
+                    type="checkbox"
+                    checked={monthFilters.size === 0}
+                    onChange={() => setMonthFilters(new Set())}
+                    className="h-4 w-4 rounded accent-[var(--theme-accent)]"
+                  />
+                  Todos os meses
+                </label>
+                {/* Mês atual */}
+                <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2.5 text-sm font-medium hover:bg-[var(--theme-hover)] border-b" style={{ borderColor: 'var(--theme-border)' }}>
+                  <input
+                    type="checkbox"
+                    checked={monthFilters.size === 1 && monthFilters.has(currentMonthKey)}
+                    onChange={() => setMonthFilters(new Set([currentMonthKey]))}
+                    className="h-4 w-4 rounded accent-[var(--theme-accent)]"
+                  />
+                  Mês atual
+                </label>
+                {availableMonths.map((k) => (
+                  <label key={k} className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm hover:bg-[var(--theme-hover)]">
+                    <input
+                      type="checkbox"
+                      checked={monthFilters.has(k)}
+                      onChange={() => {
+                        setMonthFilters(prev => {
+                          const next = new Set(prev);
+                          next.has(k) ? next.delete(k) : next.add(k);
+                          return next;
+                        });
+                      }}
+                      className="h-4 w-4 rounded accent-[var(--theme-accent)]"
+                    />
+                    {monthLabelFromKey(k)}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {monthFilters.size > 0 && (
+          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setMonthFilters(new Set())}>
             Limpar
           </Button>
         )}
@@ -650,15 +831,36 @@ export function ForAllFinancePage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Receitas</p><p className="mt-1 text-xl font-bold text-green-600">{toCurrency(revenueTotal)}</p></div><div className="rounded-xl bg-green-100 p-2.5 text-green-600"><TrendingUp className="h-5 w-5" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Despesas</p><p className="mt-1 text-xl font-bold text-red-500">{toCurrency(expenseTotal)}</p><p className="mt-0.5 text-[10px] text-[var(--theme-muted-foreground)]">incl. viagens</p></div><div className="rounded-xl bg-red-100 p-2.5 text-red-500"><TrendingDown className="h-5 w-5" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Despesas</p><p className="mt-1 text-xl font-bold text-red-500">{toCurrency(expenseTotal)}</p><p className="mt-0.5 text-[10px] text-[var(--theme-muted-foreground)]">excl. cartão</p></div><div className="rounded-xl bg-red-100 p-2.5 text-red-500"><TrendingDown className="h-5 w-5" /></div></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Saldo</p><p className={`mt-1 text-xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-500'}`}>{toCurrency(balance)}</p></div><div className="rounded-xl bg-slate-100 p-2.5 text-slate-600"><Wallet className="h-5 w-5" /></div></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-xs text-[var(--theme-muted-foreground)]">Viagens</p><p className="mt-1 text-xl font-bold text-violet-600">{toCurrency(travelTotal)}</p><p className="mt-0.5 text-[10px] text-[var(--theme-muted-foreground)]">nas despesas</p></div><div className="rounded-xl bg-violet-100 p-2.5 text-violet-600"><Plane className="h-5 w-5" /></div></div></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card><CardContent className="p-4"><p className="text-xs text-amber-600">Fixos / mês</p><p className="mt-1 text-xl font-bold">{toCurrency(fixedTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Contas recorrentes e mensais</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-violet-600">Assinaturas / mês</p><p className="mt-1 text-xl font-bold">{toCurrency(subscriptionTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Serviços com cobrança recorrente</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-red-500">Variáveis</p><p className="mt-1 text-xl font-bold">{toCurrency(variableTotal)}</p><p className="text-xs text-[var(--theme-muted-foreground)]">Gastos pontuais e do mês atual</p></CardContent></Card>
+        {([
+          { key: 'fixo' as const, label: 'Fixos / mês', cor: '#D97706', bg: '#FEF3C7', valor: fixedTotal, desc: 'Contas recorrentes e mensais' },
+          { key: 'assinatura' as const, label: 'Assinaturas / mês', cor: '#7C3AED', bg: '#EDE9FE', valor: subscriptionTotal, desc: 'Serviços com cobrança recorrente' },
+          { key: 'variavel' as const, label: 'Variáveis', cor: '#EF4444', bg: '#FEE2E2', valor: variableTotal, desc: 'Gastos pontuais e do mês atual' },
+        ] as const).map(({ key, label, cor, bg, valor, desc }) => (
+          <Card key={key}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-medium" style={{ color: cor }}>{label}</p>
+                  <p className="mt-1 text-xl font-bold">{toCurrency(valor)}</p>
+                  <p className="text-xs text-[var(--theme-muted-foreground)]">{desc}</p>
+                </div>
+                <button
+                  onClick={() => setDetailsPanel(key)}
+                  className="flex-shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors"
+                  style={{ background: bg, color: cor }}
+                >
+                  Detalhes
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-5 rounded-2xl bg-[var(--theme-background-secondary)] p-1">
@@ -686,12 +888,14 @@ export function ForAllFinancePage() {
           custos={custos}
           onImportar={() => setImportarFaturaOpen(true)}
           onDeleteFatura={handleDeleteFatura}
+          monthFilters={monthFilters}
         />
       )}
 
       {tab === 'investimentos' && <InvestmentTab />}
 
       {tab !== 'cartao' && tab !== 'investimentos' && (tab === 'visao' ? (
+        <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-[var(--theme-accent)]" />Receitas vs despesas</CardTitle></CardHeader>
@@ -738,6 +942,25 @@ export function ForAllFinancePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* InsightsPanel — análise IA com contexto financeiro completo */}
+        <InsightsPanel
+          contexto="visao"
+          resumo={[
+            `Receita média mensal: ${toCurrency(rendaMediaMensal || userProfile?.financas?.rendaMensal || 0)}`,
+            `Gasto médio mensal: ${toCurrency(gastoMedioMensal)}`,
+            `Saldo atual: ${toCurrency(balance)}`,
+            `Total investido: ${toCurrency(totalInvestidoReal)}`,
+            `Perfil investidor: ${userProfile?.financas?.perfilInvestidor || 'indefinido'}`,
+            investments.length > 0
+              ? `Investimentos cadastrados: ${investments.map((i: any) => `${i.name} (${i.type}) — ${toCurrency(i.investedAmount)}`).join(', ')}`
+              : 'Nenhum investimento cadastrado ainda.',
+            userProfile?.financas?.objetivosFinanceiros?.length
+              ? `Objetivos financeiros: ${userProfile.financas.objetivosFinanceiros.join(', ')}`
+              : '',
+          ].filter(Boolean).join('. ')}
+        />
+        </div>
       ) : (
         <div className="space-y-4">
           {/* Busca + filtros */}
@@ -762,6 +985,7 @@ export function ForAllFinancePage() {
                     { key: 'fixo', label: 'Fixas', cor: '#F59E0B' },
                     { key: 'assinatura', label: 'Assinaturas', cor: '#A855F7' },
                     { key: 'variavel', label: 'Variáveis', cor: '#EF4444' },
+                    { key: 'extrato', label: 'Extrato', cor: '#8B5CF6' },
                     { key: 'alimentacao', label: 'Alimentação', cor: '#F59E0B' },
                     { key: 'transporte', label: 'Transporte', cor: '#3B82F6' },
                     { key: 'moradia', label: 'Moradia', cor: '#10B981' },
@@ -787,76 +1011,182 @@ export function ForAllFinancePage() {
               </div>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-4">
-          {(tab === 'despesas'
-            ? allExpenses.filter((item) => {
-                if (despesaFilter === 'todas') return true;
-                if (despesaFilter === 'cartao') return item._isCartao;
-                if (despesaFilter === 'viagem') return item._isTravel;
-                if (despesaFilter === 'fixo') return item.tipoGasto === 'fixo';
-                if (despesaFilter === 'assinatura') return item.tipoGasto === 'assinatura';
-                if (despesaFilter === 'variavel') return item.tipoGasto === 'variavel' && !item._isTravel && !item._isCartao;
-                return item.categoria === despesaFilter;
-              })
-            : revenuesFiltered
-          ).filter(matchesSearch).map((item) => (
-            <Card key={item.id}>
-              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-                <div className="flex items-center gap-3">
-                  {item._isTravel && (
-                    <div className="rounded-xl bg-violet-100 p-2 text-violet-600 flex-shrink-0">
-                      <Plane className="h-4 w-4" />
+          {(() => {
+            const baseItems = (tab === 'despesas'
+              ? allExpenses.filter((item) => {
+                  if (despesaFilter === 'todas') return true;
+                  if (despesaFilter === 'cartao') return item._isCartao;
+                  if (despesaFilter === 'viagem') return item._isTravel;
+                  if (despesaFilter === 'fixo') return item.tipoGasto === 'fixo';
+                  if (despesaFilter === 'assinatura') return item.tipoGasto === 'assinatura';
+                  if (despesaFilter === 'variavel') return item.tipoGasto === 'variavel' && !item._isTravel && !item._isCartao;
+                  if (despesaFilter === 'extrato') return item._isExtrato;
+                  return item.categoria === despesaFilter;
+                })
+              : revenuesFiltered
+            ).filter(matchesSearch);
+
+            type GroupKey = 'cartao' | 'extrato' | 'viagem' | 'manual_receita' | 'recorrente' | 'manual'
+              | 'salario' | 'pix' | 'resgate' | 'transferencia' | 'outros_receita';
+            const GROUP_LABELS: Record<GroupKey, { label: string; color: string }> = {
+              cartao:          { label: 'Fatura de Cartão',     color: '#3B82F6' },
+              extrato:         { label: 'Extrato Bancário',     color: '#8B5CF6' },
+              viagem:          { label: 'Viagens',              color: '#7C3AED' },
+              recorrente:      { label: 'Salário / Recorrente', color: '#10B981' },
+              manual_receita:  { label: 'Lançamento Manual',    color: '#6B7280' },
+              manual:          { label: 'Lançamento Manual',    color: '#6B7280' },
+              salario:         { label: 'Salário',              color: '#10B981' },
+              pix:             { label: 'PIX Recebido',         color: '#7C3AED' },
+              resgate:         { label: 'Resgate / Rendimento', color: '#F59E0B' },
+              transferencia:   { label: 'Transferência',        color: '#3B82F6' },
+              outros_receita:  { label: 'Outras Receitas',      color: '#6B7280' },
+            };
+
+            const classifyRevenue = (item: any): GroupKey => {
+              const desc = String(item.descricao || '').toLowerCase();
+              const cat  = String(item.categoria  || '').toLowerCase();
+              if (item.recorrente || cat === 'salario' || /sal[aá]rio|pagamento\s+de\s+sal|holerite|folha/.test(desc)) return 'salario';
+              if (/pix/.test(desc)) return 'pix';
+              if (/resgate|rendimento|juros|cdi|selic|dividendo|provento|jcp/.test(desc)) return 'resgate';
+              if (/transfer[eê]ncia|ted|doc/.test(desc)) return 'transferencia';
+              if (cat === 'freelance' || cat === 'vendas' || cat === 'bonus' || cat === 'aluguel' || cat === 'investimentos') {
+                return cat === 'investimentos' ? 'resgate' : 'outros_receita';
+              }
+              return 'outros_receita';
+            };
+
+            const getGroup = (item: any): GroupKey => {
+              if (tab === 'receitas') return classifyRevenue(item);
+              if (item._isCartao) return 'cartao';
+              if (item._isTravel) return 'viagem';
+              if (item._isExtrato) return 'extrato';
+              return 'manual';
+            };
+
+            const grouped = new Map<GroupKey, any[]>();
+            for (const item of baseItems) {
+              const g = getGroup(item);
+              if (!grouped.has(g)) grouped.set(g, []);
+              grouped.get(g)!.push(item);
+            }
+
+            const groupOrder: GroupKey[] = tab === 'receitas'
+              ? ['salario', 'pix', 'transferencia', 'resgate', 'outros_receita', 'recorrente', 'manual_receita']
+              : ['cartao', 'extrato', 'viagem', 'manual'];
+
+            return (
+              <div className="space-y-4">
+                {groupOrder.map(groupKey => {
+                  const items = grouped.get(groupKey);
+                  if (!items?.length) return null;
+                  const { label, color } = GROUP_LABELS[groupKey];
+                  const isOpen = openGroups.has(groupKey);
+                  const toggleGroup = () => setOpenGroups(prev => {
+                    const next = new Set(prev);
+                    if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
+                    return next;
+                  });
+                  const groupTotal = items.reduce((s: number, i: any) => s + Number(i.valor || 0), 0);
+                  return (
+                    <div key={groupKey}>
+                      <button
+                        onClick={toggleGroup}
+                        className="flex items-center gap-2 mb-2 w-full text-left hover:opacity-80 transition-opacity"
+                      >
+                        {isOpen
+                          ? <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
+                          : <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
+                        }
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: `${color}15`, color }}>
+                          {label}
+                        </span>
+                        <div className="flex-1 h-px" style={{ background: 'var(--theme-border)' }} />
+                        <span className="text-xs text-[var(--theme-muted-foreground)] mr-1">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                        <span className="text-xs font-semibold" style={{ color }}>{toCurrency(groupTotal)}</span>
+                      </button>
+                      {isOpen && <div className="grid grid-cols-1 gap-3">
+                        {items.map((item: any) => (
+                          <Card key={item.id}>
+                            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                              <div className="flex items-center gap-3">
+                                {item._isTravel && (
+                                  <div className="rounded-xl bg-violet-100 p-2 text-violet-600 flex-shrink-0">
+                                    <Plane className="h-4 w-4" />
+                                  </div>
+                                )}
+                                {item._isCartao && !item._isTravel && (
+                                  <div className="rounded-xl bg-blue-100 p-2 text-blue-600 flex-shrink-0">
+                                    <CreditCard className="h-4 w-4" />
+                                  </div>
+                                )}
+                                {tab === 'receitas' && item.recorrente && (
+                                  <div className="rounded-xl bg-green-100 p-2 text-green-600 flex-shrink-0">
+                                    <RefreshCw className="h-4 w-4" />
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-base font-semibold text-[var(--theme-foreground)]">{item.descricao}</p>
+                                  <p className="mt-1 text-sm text-[var(--theme-muted-foreground)]">
+                                    {item.categoria} • {typeof item.data === 'string' ? item.data : item.data instanceof Date ? item.data.toLocaleDateString('pt-BR') : ''}
+                                    {item.tipoGasto && !item._isTravel ? ` • ${item.tipoGasto}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {tab === 'despesas' && item._isTravel
+                                  ? <Badge variant="outline" className="border-violet-300 text-violet-600">Viagem</Badge>
+                                  : tab === 'despesas' && item._isCartao
+                                  ? <Badge variant="outline" className="border-blue-300 text-blue-600">
+                                      Cartão{item.nomeCartao ? ` • ${item.nomeCartao}` : ''}
+                                    </Badge>
+                                  : tab === 'despesas' && item._isExtrato
+                                  ? <Badge variant="outline" className="border-violet-300 text-violet-600">Extrato</Badge>
+                                  : tab === 'despesas' && item.tipoGasto
+                                  ? <Badge variant="outline">{item.tipoGasto}</Badge>
+                                  : null}
+                                {tab === 'receitas' && item.recorrente && (
+                                  <Badge variant="outline" className="border-green-300 text-green-600">Recorrente</Badge>
+                                )}
+                                <span className={`text-lg font-bold ${tab === 'despesas' ? 'text-red-500' : 'text-green-600'}`}>
+                                  {toCurrency(Number(item.valor || 0))}
+                                </span>
+                                {/* Editar — só para itens não-viagem e não-cartão */}
+                                {!item._isTravel && !item._isCartao && item.id && !String(item.id).startsWith('trip-') && (
+                                  <button
+                                    onClick={() => tab === 'despesas' ? handleEditExpense(item) : handleEditRevenue(item)}
+                                    className="rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-[var(--theme-accent)] hover:bg-[var(--theme-hover)] transition-colors"
+                                    title="Editar"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                )}
+                                {/* Excluir — só para itens que não são viagem */}
+                                {!item._isTravel && item.id && !String(item.id).startsWith('trip-') && (
+                                  <button
+                                    onClick={() => tab === 'despesas' ? handleDeleteExpense(item.id) : handleDeleteRevenue(item.id)}
+                                    className="rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-colors"
+                                    title="Excluir"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>}
                     </div>
-                  )}
-                  {item._isCartao && !item._isTravel && (
-                    <div className="rounded-xl bg-blue-100 p-2 text-blue-600 flex-shrink-0">
-                      <CreditCard className="h-4 w-4" />
-                    </div>
-                  )}
-                  {tab === 'receitas' && item.recorrente && (
-                    <div className="rounded-xl bg-green-100 p-2 text-green-600 flex-shrink-0">
-                      <RefreshCw className="h-4 w-4" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-base font-semibold text-[var(--theme-foreground)]">{item.descricao}</p>
-                    <p className="mt-1 text-sm text-[var(--theme-muted-foreground)]">
-                      {item.categoria} • {typeof item.data === 'string' ? item.data : item.data instanceof Date ? item.data.toLocaleDateString('pt-BR') : ''}
-                      {item.tipoGasto && !item._isTravel ? ` • ${item.tipoGasto}` : ''}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {tab === 'despesas' && item._isTravel
-                    ? <Badge variant="outline" className="border-violet-300 text-violet-600">Viagem</Badge>
-                    : tab === 'despesas' && item._isCartao
-                    ? <Badge variant="outline" className="border-blue-300 text-blue-600">
-                        Cartão{item.nomeCartao ? ` • ${item.nomeCartao}` : ''}
-                      </Badge>
-                    : tab === 'despesas' && item.tipoGasto
-                    ? <Badge variant="outline">{item.tipoGasto}</Badge>
-                    : null}
-                  {tab === 'receitas' && item.recorrente && (
-                    <Badge variant="outline" className="border-green-300 text-green-600">Recorrente</Badge>
-                  )}
-                  <span className={`text-lg font-bold ${tab === 'despesas' ? 'text-red-500' : 'text-green-600'}`}>
-                    {toCurrency(Number(item.valor || 0))}
-                  </span>
-                  {/* Botão excluir — só para itens que não são viagem (viagens são excluídas na aba de viagens) */}
-                  {!item._isTravel && item.id && !String(item.id).startsWith('trip-') && (
-                    <button
-                      onClick={() => tab === 'despesas' ? handleDeleteExpense(item.id) : handleDeleteRevenue(item.id)}
-                      className="ml-1 rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          </div>
+                  );
+                })}
+                {baseItems.length === 0 && (
+                  <p className="text-center py-10 text-sm text-[var(--theme-muted-foreground)]">
+                    Nenhum item encontrado
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       ))}
 
@@ -874,26 +1204,7 @@ export function ForAllFinancePage() {
                 onChange={(e) => setPerfilForm((p) => ({ ...p, rendaMensal: e.target.value }))}
                 placeholder="Ex: 5000"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Reserva emergencial (R$)</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={perfilForm.reservaEmergencia}
-                onChange={(e) => setPerfilForm((p) => ({ ...p, reservaEmergencia: e.target.value }))}
-                placeholder="Ex: 15000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Total em investimentos (R$)</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={perfilForm.totalInvestido}
-                onChange={(e) => setPerfilForm((p) => ({ ...p, totalInvestido: e.target.value }))}
-                placeholder="Ex: 25000"
-              />
+              <p className="text-xs text-[var(--theme-muted-foreground)]">Usado como referência quando não há receitas cadastradas.</p>
             </div>
             <div className="space-y-2">
               <Label>Perfil investidor</Label>
@@ -924,6 +1235,71 @@ export function ForAllFinancePage() {
               {savingPerfil ? 'Salvando…' : 'Salvar'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Popup de detalhes: Fixo / Assinatura / Variável ── */}
+      <Dialog open={detailsPanel !== null} onOpenChange={(o) => !o && setDetailsPanel(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {detailsPanel === 'fixo' && 'Despesas Fixas'}
+              {detailsPanel === 'assinatura' && 'Assinaturas'}
+              {detailsPanel === 'variavel' && 'Despesas Variáveis'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto flex-1">
+            {(() => {
+              const items = mergedManualFiltered.filter(i => i.tipoGasto === detailsPanel);
+              if (!items.length) return <p className="py-8 text-center text-sm text-[var(--theme-muted-foreground)]">Nenhum lançamento encontrado.</p>;
+              return (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-[var(--theme-muted-foreground)]" style={{ borderColor: 'var(--theme-border)' }}>
+                      <th className="py-2 pr-3 text-left font-medium">Item</th>
+                      <th className="py-2 pr-3 text-left font-medium">Data</th>
+                      <th className="py-2 pr-3 text-right font-medium">Valor</th>
+                      <th className="py-2 pr-3 text-left font-medium">Pagamento</th>
+                      <th className="py-2 text-left font-medium">Observações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.sort((a, b) => String(a.data).localeCompare(String(b.data))).map((item, idx) => {
+                      const dataStr = (() => {
+                        if (!item.data) return '—';
+                        const d = item.data instanceof Date ? item.data : new Date(item.data);
+                        if (isNaN(d.getTime())) return '—';
+                        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                      })();
+                      const pagamento = item._isCartao
+                        ? (item.nomeCartao ? `Cartão · ${item.nomeCartao}` : 'Cartão de crédito')
+                        : item._isExtrato
+                          ? 'Débito em conta'
+                          : '—';
+                      const obs = [item.categoria].filter(Boolean).join(' · ');
+                      return (
+                        <tr key={item.id ?? idx} className="border-b last:border-0" style={{ borderColor: 'var(--theme-border)' }}>
+                          <td className="py-2 pr-3 font-medium text-[var(--theme-foreground)]">{item.descricao}</td>
+                          <td className="py-2 pr-3 text-[var(--theme-muted-foreground)]">{dataStr}</td>
+                          <td className="py-2 pr-3 text-right font-semibold text-red-500">{toCurrency(Number(item.valor || 0))}</td>
+                          <td className="py-2 pr-3 text-xs text-[var(--theme-muted-foreground)]">{pagamento}</td>
+                          <td className="py-2 text-xs text-[var(--theme-muted-foreground)]">{obs}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t font-semibold" style={{ borderColor: 'var(--theme-border)' }}>
+                      <td className="py-2 pr-3 text-[var(--theme-muted-foreground)]">Total</td>
+                      <td />
+                      <td className="py-2 pr-3 text-right">{toCurrency(items.reduce((s, i) => s + Number(i.valor || 0), 0))}</td>
+                      <td /><td />
+                    </tr>
+                  </tfoot>
+                </table>
+              );
+            })()}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -961,15 +1337,17 @@ export function ForAllFinancePage() {
                 categoria: r.categoria,
                 data: r.data,
                 natureza: 'receita',
+                recorrente: r.recorrente,
+                notas: r.notas,
               }));
             return [...extras, ...prev];
           });
         }}
       />
 
-      <Dialog open={expenseDialog} onOpenChange={setExpenseDialog}>
+      <Dialog open={expenseDialog} onOpenChange={(v) => { if (!v) setEditingExpenseId(null); setExpenseDialog(v); }}>
         <DialogContent className="sm:max-w-xl">
-          <DialogHeader><DialogTitle>Nova despesa</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingExpenseId ? 'Editar despesa' : 'Nova despesa'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Descrição</Label><Input value={expenseForm.descricao} onChange={(e) => setExpenseForm((prev) => ({ ...prev, descricao: e.target.value }))} /></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1014,15 +1392,15 @@ export function ForAllFinancePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setExpenseDialog(false)}>Cancelar</Button>
-            <Button className="bg-red-500 text-white hover:bg-red-600" onClick={handleSaveExpense}>Salvar despesa</Button>
+            <Button variant="outline" onClick={() => { setEditingExpenseId(null); setExpenseDialog(false); }}>Cancelar</Button>
+            <Button className="bg-red-500 text-white hover:bg-red-600" onClick={handleSaveExpense}>{editingExpenseId ? 'Salvar alterações' : 'Salvar despesa'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={revenueDialog} onOpenChange={setRevenueDialog}>
+      <Dialog open={revenueDialog} onOpenChange={(v) => { if (!v) setEditingRevenueId(null); setRevenueDialog(v); }}>
         <DialogContent className="sm:max-w-xl">
-          <DialogHeader><DialogTitle>Nova receita</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingRevenueId ? 'Editar receita' : 'Nova receita'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Descrição</Label><Input placeholder="Ex: Salário, Freelance..." value={revenueForm.descricao} onChange={(e) => setRevenueForm((prev) => ({ ...prev, descricao: e.target.value }))} /></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1064,9 +1442,9 @@ export function ForAllFinancePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRevenueDialog(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setEditingRevenueId(null); setRevenueDialog(false); }}>Cancelar</Button>
             <Button className="bg-green-600 text-white hover:bg-green-700" onClick={handleSaveRevenue}>
-              {revenueForm.recorrente ? 'Salvar para todos os meses' : 'Salvar receita'}
+              {editingRevenueId ? 'Salvar alterações' : revenueForm.recorrente ? 'Salvar para todos os meses' : 'Salvar receita'}
             </Button>
           </DialogFooter>
         </DialogContent>

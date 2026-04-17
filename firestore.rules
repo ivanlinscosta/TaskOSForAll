@@ -116,5 +116,17 @@ service cloud.firestore {
     match /investment_market_snapshots/{docId} {
       allow read, write: if isAuthenticated();
     }
+
+    // ── Guided Tour ───────────────────────────────────────────────────────────
+    // Campanhas: qualquer usuário autenticado lê; escrita apenas via Admin SDK
+    match /guided_tour_campaigns/{docId} {
+      allow read: if isAuthenticated();
+    }
+
+    // Estado por usuário: dono lê e escreve o próprio documento
+    match /user_guided_tour_states/{docId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.ownerId;
+      allow create: if isOwnerField();
+    }
   }
 }

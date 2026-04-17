@@ -14,6 +14,7 @@ import { ForAllCommitmentsPage } from './pages/forall/commitments';
 import { ForAllFinancePage } from './pages/forall/finance';
 import { CarreiraPage } from './pages/forall/carreira';
 import { MeuDesenvolvimentoPage } from './pages/forall/meu-desenvolvimento';
+import { VagasParaMimPage } from './pages/forall/VagasParaMimPage';
 import { Viagens } from './pages/pessoal/viagens';
 import { NovaViagem } from './pages/pessoal/nova-viagem';
 import { EditarViagem } from './pages/pessoal/editar-viagem';
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'chat', Component: ChatGuiado },
       { path: 'carreira', Component: CarreiraPage },
       { path: 'meu-desenvolvimento', Component: MeuDesenvolvimentoPage },
+      { path: 'vagas-para-mim', Component: VagasParaMimPage },
       { path: 'tarefas', Component: ForAllTasksBoard },
       { path: 'planejamento', Component: ForAllCommitmentsPage },
       { path: 'financas', Component: ForAllFinancePage },

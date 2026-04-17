@@ -1,6 +1,11 @@
 import { onCallGenkit } from 'firebase-functions/https';
 import { defineSecret } from 'firebase-functions/params';
 import { assistantFlow } from './flows/assistant-flow';
+export {
+  validateGuidedTourCampaign,
+  publishGuidedTourCampaign,
+  deactivateGuidedTourCampaign,
+} from './guided-tour-functions';
 import { assistantImageFlow } from './flows/assistant-image-flow';
 import { faturaParserFlow } from './flows/fatura-parser-flow';
 import { extratoParserFlow } from './flows/extrato-parser-flow';
@@ -10,12 +15,14 @@ import { viagemPlanningFlow } from './flows/viagem-planning-flow';
 import { curriculoParserFlow } from './flows/curriculo-parser-flow';
 import { investmentInsightsFlow } from './flows/investment-insights-flow';
 import { investmentProjectionFlow } from './flows/investment-projection-flow';
+import { vagasFlow } from './flows/vagas-flow';
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
 export const assistantFlowCallable = onCallGenkit(
   {
     secrets: [geminiApiKey],
+    cors: true,
   },
   assistantFlow
 );
@@ -96,4 +103,14 @@ export const investmentProjectionCallable = onCallGenkit(
     memory: '512MiB',
   },
   investmentProjectionFlow
+);
+
+export const vagasCallable = onCallGenkit(
+  {
+    secrets: [geminiApiKey],
+    timeoutSeconds: 180,
+    memory: '512MiB',
+    cors: true,
+  },
+  vagasFlow
 );

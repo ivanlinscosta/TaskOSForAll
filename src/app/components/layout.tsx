@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import { cn } from '../../lib/utils';
 import AppSidebar from '../../app/components/layout/AppSidebar';
 import Header from '../../app/components/layout/AppHeader';
+import { VagasNotification } from './VagasNotification';
 
 export function Layout() {
   const { contextMode } = useAppStore();
@@ -21,6 +22,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <VagasNotification />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useAppStore } from '../../../stores/useAppStore';
 import { cn } from '../../../lib/utils';
 import { MAIN_MENU } from '../../../lib/taskos-forall';
@@ -7,7 +7,7 @@ import { TaskOSRadarIcon } from '../../layouts/WorkspaceLogo';
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, vagasAtivas } = useAppStore();
 
   return (
     <aside
@@ -110,6 +110,33 @@ export default function AppSidebar() {
               </Link>
             );
           })}
+
+          {/* Vagas Para Mim — aparece após aceitar recomendações */}
+          {vagasAtivas && (() => {
+            const isActive = location.pathname === '/vagas-para-mim';
+            return (
+              <Link
+                to="/vagas-para-mim"
+                className={cn(
+                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
+                  sidebarCollapsed && 'justify-center',
+                )}
+                style={isActive
+                  ? { background: 'var(--theme-accent)', color: 'var(--theme-accent-foreground)', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }
+                  : { color: 'var(--theme-foreground)' }
+                }
+                title={sidebarCollapsed ? 'Vagas Para Mim' : undefined}
+              >
+                <Sparkles className={cn('h-5 w-5 flex-shrink-0', isActive && 'scale-105')} />
+                {!sidebarCollapsed && (
+                  <div className="min-w-0">
+                    <span className="block font-medium">Vagas Para Mim</span>
+                    <span className="block truncate text-[11px] opacity-70">Vagas recomendadas com IA</span>
+                  </div>
+                )}
+              </Link>
+            );
+          })()}
         </div>
       </nav>
 

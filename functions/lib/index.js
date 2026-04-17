@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.curriculoParserCallable = exports.viagemPlanningCallable = exports.carreiraAnaliseCallable = exports.financasInsightsCallable = exports.extratoParserCallable = exports.faturaParserCallable = exports.assistantImageFlowCallable = exports.assistantFlowCallable = void 0;
+exports.vagasCallable = exports.investmentProjectionCallable = exports.investmentInsightsCallable = exports.curriculoParserCallable = exports.viagemPlanningCallable = exports.carreiraAnaliseCallable = exports.financasInsightsCallable = exports.extratoParserCallable = exports.faturaParserCallable = exports.assistantImageFlowCallable = exports.assistantFlowCallable = void 0;
 const https_1 = require("firebase-functions/https");
 const params_1 = require("firebase-functions/params");
 const assistant_flow_1 = require("./flows/assistant-flow");
@@ -11,9 +11,13 @@ const insights_flow_1 = require("./flows/insights-flow");
 const carreira_flow_1 = require("./flows/carreira-flow");
 const viagem_planning_flow_1 = require("./flows/viagem-planning-flow");
 const curriculo_parser_flow_1 = require("./flows/curriculo-parser-flow");
+const investment_insights_flow_1 = require("./flows/investment-insights-flow");
+const investment_projection_flow_1 = require("./flows/investment-projection-flow");
+const vagas_flow_1 = require("./flows/vagas-flow");
 const geminiApiKey = (0, params_1.defineSecret)('GEMINI_API_KEY');
 exports.assistantFlowCallable = (0, https_1.onCallGenkit)({
     secrets: [geminiApiKey],
+    cors: true,
 }, assistant_flow_1.assistantFlow);
 exports.assistantImageFlowCallable = (0, https_1.onCallGenkit)({
     secrets: [geminiApiKey],
@@ -48,4 +52,19 @@ exports.curriculoParserCallable = (0, https_1.onCallGenkit)({
     memory: '512MiB',
     cors: true,
 }, curriculo_parser_flow_1.curriculoParserFlow);
+exports.investmentInsightsCallable = (0, https_1.onCallGenkit)({
+    secrets: [geminiApiKey],
+    timeoutSeconds: 120,
+}, investment_insights_flow_1.investmentInsightsFlow);
+exports.investmentProjectionCallable = (0, https_1.onCallGenkit)({
+    secrets: [geminiApiKey],
+    timeoutSeconds: 180,
+    memory: '512MiB',
+}, investment_projection_flow_1.investmentProjectionFlow);
+exports.vagasCallable = (0, https_1.onCallGenkit)({
+    secrets: [geminiApiKey],
+    timeoutSeconds: 180,
+    memory: '512MiB',
+    cors: true,
+}, vagas_flow_1.vagasFlow);
 //# sourceMappingURL=index.js.map

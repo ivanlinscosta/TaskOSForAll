@@ -53,6 +53,9 @@ export const COLLECTIONS = {
   INVESTMENT_MARKET_SNAPSHOTS: 'investment_market_snapshots',
   INVESTMENT_DAILY_SNAPSHOTS: 'investment_daily_snapshots',
   INVESTMENT_AI_INSIGHTS: 'investment_ai_insights',
+  // Guided Tour campaigns
+  GUIDED_TOUR_CAMPAIGNS: 'guided_tour_campaigns',
+  USER_GUIDED_TOUR_STATES: 'user_guided_tour_states',
 } as const;
 
 export { analytics };

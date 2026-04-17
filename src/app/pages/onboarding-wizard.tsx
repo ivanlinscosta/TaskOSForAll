@@ -837,15 +837,6 @@ function Step4({
               placeholder="Ex: 5000"
             />
           </div>
-          <div className="space-y-2">
-            <Label>Reserva atual (R$)</Label>
-            <Input
-              inputMode="decimal"
-              value={data.reservaEmergencia ? String(data.reservaEmergencia) : ''}
-              onChange={(e) => onChange({ reservaEmergencia: Number(e.target.value.replace(/[^0-9.]/g, '')) || 0 })}
-              placeholder="Ex: 20000"
-            />
-          </div>
         </div>
 
         <div className="space-y-2">
@@ -1338,7 +1329,7 @@ export function OnboardingWizard() {
     estiloTrabalho: '', pontosFortes: '', pontosMelhorar: '',
   });
   const [step4, setStep4] = useState<Step4Data>({
-    rendaMensal: 0, gastoMedioMensal: 0, reservaEmergencia: 0,
+    rendaMensal: 0, gastoMedioMensal: 0,
     objetivosFinanceiros: [], perfilInvestidor: 'indefinido',
     jaInveste: false, tiposInvestimento: [], horizonte: 'medio',
   });
@@ -1476,7 +1467,6 @@ export function OnboardingWizard() {
       const financasContexto = [
         step4.rendaMensal      ? `Renda mensal R$ ${step4.rendaMensal}` : '',
         step4.gastoMedioMensal ? `Gasto médio R$ ${step4.gastoMedioMensal}` : '',
-        step4.reservaEmergencia !== undefined ? `Reserva R$ ${step4.reservaEmergencia}` : '',
         step4.perfilInvestidor ? `Perfil ${step4.perfilInvestidor}` : '',
         step4.jaInveste !== undefined ? (step4.jaInveste ? 'Já investe' : 'Ainda não investe') : '',
         step4.tiposInvestimento?.length ? `Investe em ${step4.tiposInvestimento.join(', ')}` : '',

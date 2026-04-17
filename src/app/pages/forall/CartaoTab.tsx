@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react';
 import {
   CreditCard, Layers, TrendingDown, Calendar,
   Trash2, FileUp, ChevronDown, ChevronRight, BarChart2, LayoutList, Sparkles, Pencil, Check, X,
+  ScanSearch, RefreshCw,
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -18,6 +21,22 @@ import { InsightsPanel } from '../../components/InsightsPanel';
 import { formatCurrency } from '../../../lib/utils';
 
 const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const SUBSCRIPTION_KEYWORDS = [
+  'netflix', 'spotify', 'disney', 'hbo', 'amazon prime', 'prime video',
+  'apple', 'microsoft', 'xbox', 'playstation', 'youtube', 'google one',
+  'dropbox', 'adobe', 'canva', 'figma', 'notion', 'slack', 'zoom',
+  'duolingo', 'deezer', 'globoplay', 'paramount', 'crunchyroll',
+  'nintendo', 'twitch', 'linkedin', 'chatgpt', 'openai', 'midjourney',
+  'github', 'office 365', 'office365', 'onedrive', 'icloud',
+  'kaspersky', 'mcafee', 'norton', 'avg', 'avast', 'bitdefender',
+  'expressvpn', 'nordvpn', 'surfshark',
+];
+
+function isSubscriptionName(desc: string): boolean {
+  const d = desc.toLowerCase();
+  return SUBSCRIPTION_KEYWORDS.some(k => d.includes(k));
+}
 const fmt = formatCurrency;
 const MERCHANT_COLORS = ['#0EA5E9', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'];
 
@@ -75,18 +94,33 @@ export interface CartaoTabProps {
   custos: custosService.Custo[];
   onImportar: () => void;
   onDeleteFatura: (ids: string[], key: string) => Promise<void>;
+  monthFilters?: Set<string>;
 }
 
-export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps) {
+function monthKey(value: any): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function CartaoTab({ custos, onImportar, onDeleteFatura, monthFilters }: CartaoTabProps) {
   const [faturasAbertas, setFaturasAbertas] = useState<Set<string>>(new Set());
   const [parcelasExpandidas, setParcelasExpandidas] = useState<Set<string>>(new Set());
+  const [parcelamentosOpen, setParcelamentosOpen] = useState(false);
   const [filtroCartao, setFiltroCartao] = useState<string>('Todos');
   // Category editing for individual invoice items (post-import)
   const [editingCategoryItemId, setEditingCategoryItemId] = useState<string | null>(null);
   const [pendingCategory, setPendingCategory] = useState<custosService.CategoriaCusto>('outros');
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
-  // Optimistic overrides: custo.id → new category (so UI updates immediately after save)
+  // Optimistic overrides: custo.id → new category / tipo (so UI updates immediately after save)
   const [categoryOverrides, setCategoryOverrides] = useState<Record<string, custosService.CategoriaCusto>>({});
+  const [tipoOverrides, setTipoOverrides] = useState<Record<string, custosService.TipoCusto>>({});
+
+  // Reclassification dialog
+  const [reclassifyOpen, setReclassifyOpen] = useState(false);
+  const [reclassifySelected, setReclassifySelected] = useState<Set<string>>(new Set());
+  const [reclassifying, setReclassifying] = useState(false);
+  const [reclassifySearch, setReclassifySearch] = useState('');
 
   const handleStartEditCategory = (c: custosService.Custo) => {
     setEditingCategoryItemId(c.id!);
@@ -112,14 +146,68 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
     }
   };
 
+  const cartaoAll = useMemo(() => custos.filter(c => c.origem === 'cartao'), [custos]);
+
+  // Subscription reclassification — grouped by service name so ALL months are updated
+  type SubGroup = {
+    norm: string;          // normalized key
+    label: string;         // display name (first occurrence)
+    ids: string[];         // ALL matching item IDs across every fatura
+    count: number;
+    totalValue: number;
+    representative: custosService.Custo;
+  };
+
+  const subscriptionGroups = useMemo((): SubGroup[] => {
+    const map = new Map<string, SubGroup>();
+    for (const c of cartaoAll) {
+      const tipoAtual = tipoOverrides[c.id!] ?? c.tipo;
+      if (!isSubscriptionName(c.descricao) || tipoAtual === 'assinatura' || !c.id) continue;
+      const norm = c.descricao.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+      if (!map.has(norm)) {
+        map.set(norm, { norm, label: c.descricao, ids: [], count: 0, totalValue: 0, representative: c });
+      }
+      const g = map.get(norm)!;
+      g.ids.push(c.id);
+      g.count++;
+      g.totalValue += c.valor;
+    }
+    return [...map.values()].sort((a, b) => b.totalValue - a.totalValue);
+  }, [cartaoAll, tipoOverrides]);
+
+  const openReclassify = () => {
+    // Select all groups by their norm key
+    setReclassifySelected(new Set(subscriptionGroups.map(g => g.norm)));
+    setReclassifySearch('');
+    setReclassifyOpen(true);
+  };
+
+  const handleReclassify = async () => {
+    // Collect ALL ids from selected groups
+    const selectedGroups = subscriptionGroups.filter(g => reclassifySelected.has(g.norm));
+    const allIds = selectedGroups.flatMap(g => g.ids);
+    if (!allIds.length) return;
+    setReclassifying(true);
+    try {
+      await Promise.all(allIds.map(id => custosService.atualizarCusto(id, { tipo: 'assinatura' })));
+      const patch: Record<string, custosService.TipoCusto> = {};
+      allIds.forEach(id => { patch[id] = 'assinatura'; });
+      setTipoOverrides(prev => ({ ...prev, ...patch }));
+      toast.success(`${allIds.length} lançamento${allIds.length !== 1 ? 's' : ''} classificado${allIds.length !== 1 ? 's' : ''} como assinatura`);
+      setReclassifyOpen(false);
+    } catch {
+      toast.error('Erro ao reclassificar');
+    } finally {
+      setReclassifying(false);
+    }
+  };
+
   const toggleParcela = (key: string) =>
     setParcelasExpandidas(s => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
   const hoje = new Date();
   const mesAtual = getMonth(hoje);
   const anoAtual = getYear(hoje);
-
-  const cartaoAll = useMemo(() => custos.filter(c => c.origem === 'cartao'), [custos]);
 
   const nomeCartoes = useMemo(() => {
     const names = new Set(cartaoAll.map(c => c.nomeCartao?.trim() || 'Principal'));
@@ -132,7 +220,12 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
       : cartaoAll.filter(c => (c.nomeCartao?.trim() || 'Principal') === filtroCartao),
   [cartaoAll, filtroCartao]);
 
-  const faturas = useMemo(() => agruparFaturas(cartao), [cartao]);
+  const cartaoForFaturas = useMemo(() => {
+    if (!monthFilters || monthFilters.size === 0) return cartao;
+    return cartao.filter(c => monthFilters.has(monthKey(c.data)));
+  }, [cartao, monthFilters]);
+
+  const faturas = useMemo(() => agruparFaturas(cartaoForFaturas), [cartaoForFaturas]);
 
   const normalizarNome = (desc: string) =>
     desc
@@ -286,13 +379,16 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
   const pieData = useMemo(() => {
     const itens = faturas[0]?.itens ?? [];
     const map: Record<string, number> = {};
-    itens.forEach(c => { map[c.categoria] = (map[c.categoria] || 0) + c.valor; });
+    itens.forEach(c => {
+      const key = (c.tipo === 'assinatura') ? '__assinatura__' : c.categoria;
+      map[key] = (map[key] || 0) + c.valor;
+    });
     return Object.entries(map)
       .sort((a, b) => b[1] - a[1])
-      .map(([cat, valor]) => ({
-        name: custosService.CATEGORIAS_LABELS[cat as custosService.CategoriaCusto] || cat,
+      .map(([key, valor]) => ({
+        name: key === '__assinatura__' ? 'Assinaturas' : (custosService.CATEGORIAS_LABELS[key as custosService.CategoriaCusto] || key),
         value: parseFloat(valor.toFixed(2)),
-        fill: custosService.CATEGORIAS_CORES[cat as custosService.CategoriaCusto] || '#6B7280',
+        fill: key === '__assinatura__' ? '#7C3AED' : (custosService.CATEGORIAS_CORES[key as custosService.CategoriaCusto] || '#6B7280'),
       }));
   }, [faturas]);
 
@@ -549,16 +645,21 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
       {/* ── Parcelamentos ativos ── */}
       {parcelamentosAgrupados.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="cursor-pointer select-none" onClick={() => setParcelamentosOpen(o => !o)}>
             <CardTitle className="text-base flex items-center gap-2">
               <Layers className="h-4 w-4" style={{ color: '#8B5CF6' }} />
               Parcelamentos Ativos
               <Badge className="ml-1 text-xs" style={{ background: '#8B5CF615', color: '#8B5CF6', border: 'none' }}>
                 {parcelamentos.length}
               </Badge>
+              <span className="ml-auto">
+                {parcelamentosOpen
+                  ? <ChevronDown className="h-4 w-4 text-[var(--theme-muted-foreground)]" />
+                  : <ChevronRight className="h-4 w-4 text-[var(--theme-muted-foreground)]" />}
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          {parcelamentosOpen && <CardContent className="space-y-2">
             {parcelamentosAgrupados.map(({ label, items, totalGrupo }) => {
               const expandido = parcelasExpandidas.has(label);
               const corPrimaria = custosService.CATEGORIAS_CORES[items[0].custo.categoria] || '#8B5CF6';
@@ -674,20 +775,36 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                 </div>
               );
             })}
-          </CardContent>
+          </CardContent>}
         </Card>
       )}
 
       {/* ── Histórico de faturas ── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--theme-foreground)]">
             <CreditCard className="h-4 w-4" style={{ color: '#0EA5E9' }} />
             Histórico de Faturas
           </h3>
-          <Button onClick={onImportar} variant="outline" size="sm" className="gap-1.5 text-xs h-8">
-            <FileUp className="h-3.5 w-3.5" /> Nova fatura
-          </Button>
+          <div className="flex gap-2">
+            {subscriptionGroups.length > 0 && (
+              <Button
+                onClick={openReclassify}
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-8 border-amber-300 text-amber-700 hover:bg-amber-50"
+              >
+                <ScanSearch className="h-3.5 w-3.5" />
+                Detectar assinaturas
+                <span className="ml-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                  {subscriptionGroups.length}
+                </span>
+              </Button>
+            )}
+            <Button onClick={onImportar} variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+              <FileUp className="h-3.5 w-3.5" /> Nova fatura
+            </Button>
+          </div>
         </div>
 
         {faturas.map(({ key, itens }) => {
@@ -766,6 +883,7 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                           <div className="space-y-1">
                             {catItens.map(c => {
                               const effectiveCat = (categoryOverrides[c.id!] ?? c.categoria) as custosService.CategoriaCusto;
+                              const effectiveTipo = tipoOverrides[c.id!] ?? c.tipo;
                               const effectiveCor = custosService.CATEGORIAS_CORES[effectiveCat] || '#6B7280';
                               const isEditingThis = editingCategoryItemId === c.id;
                               const isSavingThis = savingCategoryId === c.id;
@@ -781,6 +899,12 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                                           <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
                                             style={{ background: `${effectiveCor}20`, color: effectiveCor }}>
                                             {custosService.CATEGORIAS_LABELS[effectiveCat] || effectiveCat}
+                                          </span>
+                                        )}
+                                        {effectiveTipo === 'assinatura' && (
+                                          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                            style={{ background: '#F59E0B20', color: '#F59E0B' }}>
+                                            assinatura
                                           </span>
                                         )}
                                         <span className="text-xs text-[var(--theme-muted-foreground)]">
@@ -858,6 +982,108 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
 
       {/* ── Recomendações com IA ── */}
       <InsightsPanel contexto="cartao" resumo={resumoCartao} />
+
+      {/* ── Dialog: detectar e reclassificar assinaturas ── */}
+      <Dialog open={reclassifyOpen} onOpenChange={setReclassifyOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScanSearch className="h-5 w-5 text-amber-500" />
+              Detectar Assinaturas
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-[var(--theme-muted-foreground)]">
+            Os lançamentos abaixo foram identificados como possíveis serviços de assinatura.
+            Selecione os que deseja reclassificar como <strong>Assinatura</strong>.
+          </p>
+
+          <Input
+            placeholder="Buscar por nome…"
+            value={reclassifySearch}
+            onChange={e => setReclassifySearch(e.target.value)}
+            className="h-8 text-sm"
+          />
+
+          <div className="flex items-center justify-between text-xs text-[var(--theme-muted-foreground)]">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded"
+                checked={reclassifySelected.size === subscriptionGroups.length && subscriptionGroups.length > 0}
+                onChange={e => setReclassifySelected(e.target.checked
+                  ? new Set(subscriptionGroups.map(g => g.norm))
+                  : new Set()
+                )}
+              />
+              Selecionar todos ({subscriptionGroups.length} serviços)
+            </label>
+            <span>
+              {subscriptionGroups.filter(g => reclassifySelected.has(g.norm)).reduce((s, g) => s + g.count, 0)} lançamentos
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-1 min-h-0" style={{ maxHeight: '320px' }}>
+            {subscriptionGroups
+              .filter(g => !reclassifySearch || g.label.toLowerCase().includes(reclassifySearch.toLowerCase()))
+              .map(g => {
+                const checked = reclassifySelected.has(g.norm);
+                const toggle = () => setReclassifySelected(prev => {
+                  const next = new Set(prev);
+                  checked ? next.delete(g.norm) : next.add(g.norm);
+                  return next;
+                });
+                return (
+                  <label
+                    key={g.norm}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 cursor-pointer transition-colors"
+                    style={{
+                      background: checked ? '#F59E0B12' : 'var(--theme-background-secondary)',
+                      border: `1px solid ${checked ? '#F59E0B40' : 'transparent'}`,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded flex-shrink-0"
+                      checked={checked}
+                      onChange={toggle}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--theme-foreground)] truncate">{g.label}</p>
+                      <p className="text-xs text-[var(--theme-muted-foreground)]">
+                        {g.count} lançamento{g.count !== 1 ? 's' : ''} em faturas · {custosService.CATEGORIAS_LABELS[g.representative.categoria]}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold text-amber-600">{fmt(g.totalValue)}</p>
+                      <p className="text-xs text-[var(--theme-muted-foreground)]">total</p>
+                    </div>
+                  </label>
+                );
+              })}
+          </div>
+
+          {(() => {
+            const totalLancamentos = subscriptionGroups.filter(g => reclassifySelected.has(g.norm)).reduce((s, g) => s + g.count, 0);
+            return (
+              <DialogFooter className="border-t pt-3" style={{ borderColor: 'var(--theme-border)' }}>
+                <Button variant="outline" onClick={() => setReclassifyOpen(false)}>Cancelar</Button>
+                <Button
+                  onClick={handleReclassify}
+                  disabled={reclassifying || reclassifySelected.size === 0}
+                  style={{ background: '#F59E0B', color: '#fff' }}
+                  className="gap-2"
+                >
+                  {reclassifying
+                    ? <><RefreshCw className="h-4 w-4 animate-spin" /> Classificando…</>
+                    : <><Check className="h-4 w-4" /> Classificar {totalLancamentos} lançamentos</>
+                  }
+                </Button>
+              </DialogFooter>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

@@ -16,7 +16,7 @@ const InputSchema = z.object({
 
 const InsightItemSchema = z.object({
   titulo: z.string().max(80),
-  descricao: z.string().max(220),
+  descricao: z.string().max(400),
   tipo: z.enum(['alerta', 'dica', 'oportunidade', 'observacao']),
   icone: z.string(),
 });
@@ -57,7 +57,7 @@ INSTRUÇÕES
 1. Escreva "cenario": resumo do cenário de juros e câmbio do dia em linguagem natural (máx 280 chars).
 2. Gere de 2 a 6 insights sobre a carteira. Para cada um:
    - "titulo": até 80 chars
-   - "descricao": até 220 chars, direto e útil
+   - "descricao": até 400 chars, direto e útil
    - "tipo": uma das opções:
      * "alerta" — situação que merece atenção imediata
      * "dica" — sugestão de melhoria
