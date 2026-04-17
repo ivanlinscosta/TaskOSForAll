@@ -11,7 +11,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase-config';
 
-const BRAPI_TOKEN = import.meta.env.VITE_BRAPI_TOKEN || 'demo';
+const BRAPI_TOKEN = '9xPZVim52ef6tQdocsGW8h' || 'demo';
 const BRAPI_BASE = 'https://brapi.dev/api';
 const AWESOME_BASE = 'https://economia.awesomeapi.com.br/json';
 const BCB_BASE = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs';
@@ -179,11 +179,11 @@ export async function getOrFetchMarketData(): Promise<MarketData> {
 const FII_SET = new Set(['MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'BTLG11', 'VISC11', 'HCTR11', 'RBRF11']);
 const ETF_SET = new Set(['IVVB11', 'BOVA11', 'SMAL11', 'HASH11', 'GOLD11', 'SPXI11']);
 
-// Máx 5 tickers por request no plano free da brapi
+// Plano free brapi: 1 ticker/request. Limitamos a 3 por aba para carregar rápido.
 export const RADAR_TICKERS = {
-  acoes: ['PETR4', 'VALE3', 'ITUB4', 'WEGE3', 'ABEV3'],
-  fiis:  ['MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'BTLG11'],
-  etfs:  ['IVVB11', 'BOVA11', 'SMAL11', 'HASH11', 'GOLD11'],
+  acoes: ['PETR4', 'VALE3', 'ITUB4'],
+  fiis:  ['MXRF11', 'HGLG11', 'XPML11'],
+  etfs:  ['IVVB11', 'BOVA11', 'SMAL11'],
 };
 
 function brapiResultToAsset(item: any): MarketAsset {
@@ -212,29 +212,31 @@ function brapiResultToAsset(item: any): MarketAsset {
   };
 }
 
+// Plano free brapi: 1 ativo por request. Busca sequencial com delay.
+const BRAPI_DELAY_MS = 300;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export async function fetchBrapiAssets(tickers: string[]): Promise<MarketAsset[]> {
   if (tickers.length === 0) return [];
 
-  // Fetch in batches of 5 to respect free-plan limits
-  const BATCH = 5;
   const results: MarketAsset[] = [];
 
-  for (let i = 0; i < tickers.length; i += BATCH) {
-    const batch = tickers.slice(i, i + BATCH);
+  for (const ticker of tickers) {
     try {
-      const url = `${BRAPI_BASE}/quote/${batch.join(',')}?token=${BRAPI_TOKEN}&fundamental=false`;
+      const url = `${BRAPI_BASE}/quote/${ticker}?token=${BRAPI_TOKEN}`;
       const res = await fetch(url);
       if (!res.ok) {
-        console.warn(`brapi ${res.status} for batch ${batch.join(',')}`);
+        console.warn(`brapi ${res.status} for ${ticker}`);
         continue;
       }
       const data = await res.json();
-      if (Array.isArray(data?.results)) {
-        results.push(...data.results.map(brapiResultToAsset));
+      if (Array.isArray(data?.results) && data.results[0]) {
+        results.push(brapiResultToAsset(data.results[0]));
       }
     } catch (err) {
-      console.warn('brapi fetch error:', err);
+      console.warn(`brapi error for ${ticker}:`, err);
     }
+    await sleep(BRAPI_DELAY_MS);
   }
 
   return results;
