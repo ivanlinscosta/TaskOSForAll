@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   CreditCard, Layers, TrendingDown, Calendar,
-  Trash2, FileUp, ChevronDown, ChevronRight, BarChart2, LayoutList, Sparkles,
+  Trash2, FileUp, ChevronDown, ChevronRight, BarChart2, LayoutList, Sparkles, Pencil, Check, X,
 } from 'lucide-react';
 import {
   BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend,
@@ -11,7 +11,9 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { addMonths, format, getMonth, getYear, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 import * as custosService from '../../../services/custos-service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { InsightsPanel } from '../../components/InsightsPanel';
 import { formatCurrency } from '../../../lib/utils';
 
@@ -79,6 +81,36 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
   const [faturasAbertas, setFaturasAbertas] = useState<Set<string>>(new Set());
   const [parcelasExpandidas, setParcelasExpandidas] = useState<Set<string>>(new Set());
   const [filtroCartao, setFiltroCartao] = useState<string>('Todos');
+  // Category editing for individual invoice items (post-import)
+  const [editingCategoryItemId, setEditingCategoryItemId] = useState<string | null>(null);
+  const [pendingCategory, setPendingCategory] = useState<custosService.CategoriaCusto>('outros');
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
+  // Optimistic overrides: custo.id → new category (so UI updates immediately after save)
+  const [categoryOverrides, setCategoryOverrides] = useState<Record<string, custosService.CategoriaCusto>>({});
+
+  const handleStartEditCategory = (c: custosService.Custo) => {
+    setEditingCategoryItemId(c.id!);
+    setPendingCategory((categoryOverrides[c.id!] ?? c.categoria) as custosService.CategoriaCusto);
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategoryItemId(null);
+  };
+
+  const handleSaveCategory = async (c: custosService.Custo) => {
+    if (!c.id) return;
+    setSavingCategoryId(c.id);
+    try {
+      await custosService.atualizarCusto(c.id, { categoria: pendingCategory });
+      setCategoryOverrides(prev => ({ ...prev, [c.id!]: pendingCategory }));
+      setEditingCategoryItemId(null);
+      toast.success('Categoria atualizada');
+    } catch {
+      toast.error('Erro ao salvar categoria');
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
 
   const toggleParcela = (key: string) =>
     setParcelasExpandidas(s => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
@@ -732,25 +764,86 @@ export function CartaoTab({ custos, onImportar, onDeleteFatura }: CartaoTabProps
                             <span className="text-xs text-[var(--theme-muted-foreground)]">{fmt(totalCat)}</span>
                           </div>
                           <div className="space-y-1">
-                            {catItens.map(c => (
-                              <div key={c.id} className="flex items-center justify-between rounded-lg px-3 py-2"
-                                style={{ background: `${cor}08` }}>
-                                <div className="min-w-0">
-                                  <p className="text-sm text-[var(--theme-foreground)] truncate">{c.descricao}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-xs text-[var(--theme-muted-foreground)]">
-                                      {format(new Date(c.data), "d MMM", { locale: ptBR })}
-                                    </span>
-                                    {c.notas === 'Compra internacional' && (
-                                      <Badge variant="outline" className="text-xs py-0">Internacional</Badge>
-                                    )}
+                            {catItens.map(c => {
+                              const effectiveCat = (categoryOverrides[c.id!] ?? c.categoria) as custosService.CategoriaCusto;
+                              const effectiveCor = custosService.CATEGORIAS_CORES[effectiveCat] || '#6B7280';
+                              const isEditingThis = editingCategoryItemId === c.id;
+                              const isSavingThis = savingCategoryId === c.id;
+
+                              return (
+                                <div key={c.id} className="rounded-lg px-3 py-2 space-y-2"
+                                  style={{ background: `${effectiveCor}08` }}>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-sm text-[var(--theme-foreground)] truncate">{c.descricao}</p>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        {!isEditingThis && (
+                                          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                            style={{ background: `${effectiveCor}20`, color: effectiveCor }}>
+                                            {custosService.CATEGORIAS_LABELS[effectiveCat] || effectiveCat}
+                                          </span>
+                                        )}
+                                        <span className="text-xs text-[var(--theme-muted-foreground)]">
+                                          {format(new Date(c.data), "d MMM", { locale: ptBR })}
+                                        </span>
+                                        {c.notas === 'Compra internacional' && (
+                                          <Badge variant="outline" className="text-xs py-0">Internacional</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                      <span className="text-sm font-semibold" style={{ color: effectiveCor }}>
+                                        {fmt(c.valor)}
+                                      </span>
+                                      {!isEditingThis ? (
+                                        <button
+                                          onClick={e => { e.stopPropagation(); handleStartEditCategory(c); }}
+                                          className="rounded-md p-1 text-[var(--theme-muted-foreground)] hover:bg-[var(--theme-background)] hover:text-[var(--theme-accent)] transition-colors"
+                                          title="Editar categoria"
+                                        >
+                                          <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={e => { e.stopPropagation(); void handleSaveCategory(c); }}
+                                            disabled={isSavingThis}
+                                            className="rounded-md p-1 text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+                                            title="Salvar"
+                                          >
+                                            <Check className="h-3.5 w-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={e => { e.stopPropagation(); handleCancelEditCategory(); }}
+                                            className="rounded-md p-1 text-[var(--theme-muted-foreground)] hover:bg-[var(--theme-background)] transition-colors"
+                                            title="Cancelar"
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
+                                  {isEditingThis && (
+                                    <Select
+                                      value={pendingCategory}
+                                      onValueChange={v => setPendingCategory(v as custosService.CategoriaCusto)}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs" onClick={e => e.stopPropagation()}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {(Object.keys(custosService.CATEGORIAS_LABELS) as custosService.CategoriaCusto[]).map(k => (
+                                          <SelectItem key={k} value={k} className="text-xs">
+                                            {custosService.CATEGORIAS_LABELS[k]}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
                                 </div>
-                                <span className="text-sm font-semibold ml-3 flex-shrink-0" style={{ color: cor }}>
-                                  {fmt(c.valor)}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );

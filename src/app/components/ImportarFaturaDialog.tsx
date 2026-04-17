@@ -74,6 +74,7 @@ export function ImportarFaturaDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
   const [nomeCartao, setNomeCartao] = useState('');
+  const [nomeCartaoError, setNomeCartaoError] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [novaCategoriasExtras, setNovaCategoriasExtras] = useState<Record<string, string>>({});
   const [criandoCategoria, setCriandoCategoria] = useState<number | null>(null);
@@ -106,6 +107,7 @@ export function ImportarFaturaDialog({
     setTransacoes([]);
     setFiltroCategoria('todas');
     setNomeCartao('');
+    setNomeCartaoError(false);
   };
 
   const handleClose = (v: boolean) => {
@@ -161,6 +163,11 @@ export function ImportarFaturaDialog({
 
   const handleImport = async () => {
     if (!faturaResult) return;
+    if (!nomeCartao.trim()) {
+      setNomeCartaoError(true);
+      toast.error('Informe o nome do cartão para continuar');
+      return;
+    }
     const selecionadas = transacoes.filter(t => t.selected);
     if (selecionadas.length === 0) {
       toast.error('Selecione ao menos uma transação para importar');
@@ -229,19 +236,25 @@ export function ImportarFaturaDialog({
           <div className="py-4 space-y-4">
             <div className="rounded-xl p-4 space-y-2" style={{ background: 'var(--theme-background-secondary)' }}>
               <Label className="flex items-center gap-1.5 text-sm font-medium text-[var(--theme-foreground)]">
-                <CreditCard className="h-3.5 w-3.5" style={{ color: 'var(--theme-accent)' }} />
-                Identificador do cartão
-                <span className="font-normal text-[var(--theme-muted-foreground)]">(opcional)</span>
+                <CreditCard className="h-3.5 w-3.5" style={{ color: nomeCartaoError ? '#EF4444' : 'var(--theme-accent)' }} />
+                Nome do cartão
+                <span className="text-red-500 font-bold">*</span>
               </Label>
               <Input
                 placeholder="Ex: Itaú Platinum, Nubank, Inter Gold…"
                 value={nomeCartao}
-                onChange={e => setNomeCartao(e.target.value)}
-                className="text-sm"
+                onChange={e => { setNomeCartao(e.target.value); if (e.target.value.trim()) setNomeCartaoError(false); }}
+                className={`text-sm ${nomeCartaoError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
-              <p className="text-xs text-[var(--theme-muted-foreground)]">
-                Permite filtrar faturas por cartão na aba Cartão.
-              </p>
+              {nomeCartaoError ? (
+                <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                  ⚠ Nome do cartão é obrigatório para importar a fatura.
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--theme-muted-foreground)]">
+                  Permite identificar e filtrar faturas por cartão na aba Cartão.
+                </p>
+              )}
             </div>
 
             <div
@@ -550,25 +563,35 @@ export function ImportarFaturaDialog({
               })}
             </div>
 
-            <DialogFooter className="flex-col gap-2 sm:flex-row items-center border-t pt-4" style={{ borderColor: 'var(--theme-border)' }}>
-              <div className="flex-1 text-sm text-[var(--theme-muted-foreground)]">
-                <span className="font-semibold text-[var(--theme-foreground)]">{selecionadasCount}</span> itens ·{' '}
-                <span className="font-semibold text-red-500">{fmt(totalSelecionado)}</span>
+            <DialogFooter className="flex-col gap-2 border-t pt-4" style={{ borderColor: 'var(--theme-border)' }}>
+              {!nomeCartao.trim() && (
+                <div className="w-full flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                  <CreditCard className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                  <p className="text-xs text-red-600">
+                    Volte à etapa anterior e informe o <strong>nome do cartão</strong> antes de importar.
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center gap-2 sm:gap-3 w-full">
+                <div className="flex-1 text-sm text-[var(--theme-muted-foreground)]">
+                  <span className="font-semibold text-[var(--theme-foreground)]">{selecionadasCount}</span> itens ·{' '}
+                  <span className="font-semibold text-red-500">{fmt(totalSelecionado)}</span>
+                </div>
+                <Button variant="outline" onClick={() => handleClose(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={isSaving || selecionadasCount === 0 || !nomeCartao.trim()}
+                  style={{ background: 'var(--theme-accent)', color: '#fff' }}
+                >
+                  {isSaving ? (
+                    <><Loader className="h-4 w-4 mr-2 animate-spin" /> Importando…</>
+                  ) : (
+                    <><Check className="h-4 w-4 mr-2" /> Importar {selecionadasCount} lançamentos</>
+                  )}
+                </Button>
               </div>
-              <Button variant="outline" onClick={() => handleClose(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleImport}
-                disabled={isSaving || selecionadasCount === 0}
-                style={{ background: 'var(--theme-accent)', color: '#fff' }}
-              >
-                {isSaving ? (
-                  <><Loader className="h-4 w-4 mr-2 animate-spin" /> Importando…</>
-                ) : (
-                  <><Check className="h-4 w-4 mr-2" /> Importar {selecionadasCount} lançamentos</>
-                )}
-              </Button>
             </DialogFooter>
           </>
         )}

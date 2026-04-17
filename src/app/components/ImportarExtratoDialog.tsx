@@ -358,9 +358,15 @@ export function ImportarExtratoDialog({
                       <div className="grid grid-cols-2 gap-2">
                         <Select
                           value={t.tipo}
-                          onValueChange={(v) =>
-                            updateField({ tipo: v as TipoTransacaoExtrato })
-                          }
+                          onValueChange={(v) => {
+                            const novoTipo = v as TipoTransacaoExtrato;
+                            // Reset categories when flipping entry/exit type to avoid stale values
+                            updateField({
+                              tipo: novoTipo,
+                              categoriaDespesa: novoTipo === 'saida' ? 'outros' : undefined,
+                              categoriaReceita: novoTipo === 'entrada' ? 'outros' : undefined,
+                            });
+                          }}
                         >
                           <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                           <SelectContent>

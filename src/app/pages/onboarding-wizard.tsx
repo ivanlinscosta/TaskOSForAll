@@ -311,7 +311,16 @@ function Step2({
   const [isParsing, setIsParsing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canNext = data.cargo.trim().length > 0 && data.objetivos.trim().length > 0;
+  const hasCurriculo = !!data.curriculo_texto;
+
+  // Without a CV, more fields become required so the AI has enough context
+  const canNext = hasCurriculo
+    ? data.cargo.trim().length > 0 && data.objetivos.trim().length > 0
+    : data.cargo.trim().length > 0 &&
+      data.empresa_atual.trim().length > 0 &&
+      data.area.trim().length > 0 &&
+      data.atividades_profissionais.trim().length > 0 &&
+      data.objetivos.trim().length > 0;
 
   const processarCurriculo = async (file: File) => {
     const isPDF = file.name.toLowerCase().endsWith('.pdf');
@@ -376,7 +385,7 @@ function Step2({
     if (f) processarCurriculo(f);
   }, []);
 
-  const hasCVData = !!data.curriculo_texto;
+  const hasCVData = !!data.curriculo_texto;  // kept for backward compat reference below
   const hasAnyField = data.cargo.trim() || data.empresa_atual.trim() || data.area.trim();
 
   return (
@@ -500,11 +509,17 @@ function Step2({
           className="rounded-3xl border p-6 shadow-sm"
           style={{ background: 'var(--theme-card)', borderColor: 'var(--theme-border)' }}
         >
-          {hasCVData && (
+          {hasCurriculo ? (
             <div className="flex items-center gap-2 mb-4 rounded-xl px-3 py-2 text-xs"
               style={{ background: 'color-mix(in srgb, var(--theme-accent) 10%, transparent)' }}>
               <Sparkles className="h-3.5 w-3.5 text-[var(--theme-accent)]" />
               <span className="text-[var(--theme-muted-foreground)]">Campos preenchidos pelo currículo. Edite se necessário.</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-4 rounded-xl px-3 py-2 text-xs border"
+              style={{ background: '#F59E0B10', borderColor: '#F59E0B30', color: '#92400E' }}>
+              <Briefcase className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+              <span>Sem currículo: preencha todos os campos com <strong>*</strong> para que a IA monte seu perfil corretamente.</span>
             </div>
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -514,22 +529,25 @@ function Step2({
                 value={data.cargo}
                 onChange={(e) => onChange({ cargo: e.target.value })}
                 placeholder="Ex: Desenvolvedor Full Stack"
+                className={!hasCurriculo && !data.cargo.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
               />
             </div>
             <div className="space-y-2">
-              <Label>Empresa atual</Label>
+              <Label>Empresa atual {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
               <Input
                 value={data.empresa_atual}
                 onChange={(e) => onChange({ empresa_atual: e.target.value })}
                 placeholder="Ex: FIAP, Itaú, startup"
+                className={!hasCurriculo && !data.empresa_atual.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
               />
             </div>
             <div className="space-y-2">
-              <Label>Área de atuação</Label>
+              <Label>Área de atuação {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
               <Input
                 value={data.area}
                 onChange={(e) => onChange({ area: e.target.value })}
                 placeholder="Ex: Tecnologia, Educação"
+                className={!hasCurriculo && !data.area.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
               />
             </div>
             <div className="space-y-2">
@@ -549,12 +567,13 @@ function Step2({
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Atividades profissionais</Label>
+              <Label>Atividades profissionais {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
               <Textarea
                 value={data.atividades_profissionais}
                 onChange={(e) => onChange({ atividades_profissionais: e.target.value })}
                 placeholder="Descreva suas principais atividades e entregas atuais…"
                 rows={3}
+                className={!hasCurriculo && !data.atividades_profissionais.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
