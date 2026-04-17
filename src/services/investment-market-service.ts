@@ -179,9 +179,10 @@ export async function getOrFetchMarketData(): Promise<MarketData> {
 const FII_SET = new Set(['MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'BTLG11', 'VISC11', 'HCTR11', 'RBRF11']);
 const ETF_SET = new Set(['IVVB11', 'BOVA11', 'SMAL11', 'HASH11', 'GOLD11', 'SPXI11']);
 
+// Máx 5 tickers por request no plano free da brapi
 export const RADAR_TICKERS = {
-  acoes: ['PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'ABEV3', 'WEGE3', 'RENT3', 'B3SA3', 'RADL3', 'SUZB3'],
-  fiis:  ['MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'BTLG11', 'VISC11'],
+  acoes: ['PETR4', 'VALE3', 'ITUB4', 'WEGE3', 'ABEV3'],
+  fiis:  ['MXRF11', 'HGLG11', 'XPML11', 'KNRI11', 'BTLG11'],
   etfs:  ['IVVB11', 'BOVA11', 'SMAL11', 'HASH11', 'GOLD11'],
 };
 
@@ -213,16 +214,30 @@ function brapiResultToAsset(item: any): MarketAsset {
 
 export async function fetchBrapiAssets(tickers: string[]): Promise<MarketAsset[]> {
   if (tickers.length === 0) return [];
-  try {
-    const tickerStr = tickers.join(',');
-    const res = await fetch(`${BRAPI_BASE}/quote/${tickerStr}?token=${BRAPI_TOKEN}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!Array.isArray(data?.results)) return [];
-    return data.results.map(brapiResultToAsset);
-  } catch {
-    return [];
+
+  // Fetch in batches of 5 to respect free-plan limits
+  const BATCH = 5;
+  const results: MarketAsset[] = [];
+
+  for (let i = 0; i < tickers.length; i += BATCH) {
+    const batch = tickers.slice(i, i + BATCH);
+    try {
+      const url = `${BRAPI_BASE}/quote/${batch.join(',')}?token=${BRAPI_TOKEN}&fundamental=false`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.warn(`brapi ${res.status} for batch ${batch.join(',')}`);
+        continue;
+      }
+      const data = await res.json();
+      if (Array.isArray(data?.results)) {
+        results.push(...data.results.map(brapiResultToAsset));
+      }
+    } catch (err) {
+      console.warn('brapi fetch error:', err);
+    }
   }
+
+  return results;
 }
 
 // ─── Renda Fixa synthetic list (built from market rates, no API needed) ───────
