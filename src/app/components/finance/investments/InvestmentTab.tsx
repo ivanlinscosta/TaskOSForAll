@@ -51,7 +51,7 @@ import { formatCurrency } from '../../../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../ui/dialog';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -391,15 +391,17 @@ function InvestmentFormModal({
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Informe o nome do investimento'); return; }
-    if (!form.investedAmount || Number(form.investedAmount) <= 0) { toast.error('Informe o valor investido'); return; }
+    const rawAmount = Number(String(form.investedAmount).replace(',', '.'));
+    if (!rawAmount || rawAmount <= 0) { toast.error('Informe o valor investido'); return; }
+    if (!ownerId) { toast.error('Usuário não autenticado'); return; }
     try {
       setSaving(true);
       const inv: Omit<UserInvestment, 'id' | 'createdAt' | 'updatedAt'> = {
         ...form,
         ownerId,
-        investedAmount: Number(String(form.investedAmount).replace(',', '.')),
+        investedAmount: rawAmount,
         currentAmount: form.currentAmount ? Number(String(form.currentAmount).replace(',', '.')) : undefined,
-        benchmarkPercent: Number(form.benchmarkPercent),
+        benchmarkPercent: Number(form.benchmarkPercent) || 100,
         fixedRateAnnual: form.fixedRateAnnual ? Number(form.fixedRateAnnual) : undefined,
         ticker: form.ticker || undefined,
         maturityDate: form.maturityDate || undefined,
@@ -410,8 +412,12 @@ function InvestmentFormModal({
       setForm(EMPTY_FORM);
       onClose();
       toast.success('Investimento cadastrado!');
-    } catch {
-      toast.error('Erro ao salvar investimento');
+    } catch (err: any) {
+      console.error('Erro ao salvar investimento:', err);
+      const msg = err?.code === 'permission-denied'
+        ? 'Sem permissão. As regras do Firestore foram deployadas? (firebase deploy --only firestore:rules)'
+        : err?.message ?? 'Erro ao salvar investimento';
+      toast.error(msg, { duration: 6000 });
     } finally {
       setSaving(false);
     }
@@ -425,6 +431,9 @@ function InvestmentFormModal({
             <PiggyBank className="h-5 w-5 text-[var(--theme-accent)]" />
             Cadastrar investimento
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulário para cadastrar um novo investimento na carteira
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
