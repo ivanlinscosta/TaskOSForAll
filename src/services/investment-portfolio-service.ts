@@ -108,17 +108,25 @@ function docToInvestment(id: string, data: any): UserInvestment {
   };
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Firestore rejeita `undefined` — remove todas as chaves com valor undefined.
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as Partial<T>;
+}
+
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
 export async function createInvestment(
   investment: Omit<UserInvestment, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   const now = Timestamp.now();
-  const ref = await addDoc(collection(db, COLLECTIONS.USER_INVESTMENTS), {
-    ...investment,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const ref = await addDoc(
+    collection(db, COLLECTIONS.USER_INVESTMENTS),
+    { ...stripUndefined(investment), createdAt: now, updatedAt: now }
+  );
   return ref.id;
 }
 
@@ -127,7 +135,7 @@ export async function updateInvestment(
   changes: Partial<Omit<UserInvestment, 'id' | 'createdAt'>>
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTIONS.USER_INVESTMENTS, id), {
-    ...changes,
+    ...stripUndefined(changes),
     updatedAt: Timestamp.now(),
   });
 }
