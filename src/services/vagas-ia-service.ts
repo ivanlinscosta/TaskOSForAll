@@ -25,19 +25,21 @@ type VagasInput = {
 
 type VagasOutput = { vagas: VagaRecomendada[] };
 
-const VAGAS_STORAGE_KEY = 'taskos_vagas_recomendadas';
+function storageKey(uid: string) {
+  return `taskos_vagas_recomendadas_${uid}`;
+}
 
-export function getVagasSalvas(): VagaRecomendada[] {
+export function getVagasSalvas(uid: string): VagaRecomendada[] {
   try {
-    const raw = localStorage.getItem(VAGAS_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(uid));
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function salvarVagas(vagas: VagaRecomendada[]) {
-  localStorage.setItem(VAGAS_STORAGE_KEY, JSON.stringify(vagas));
+export function salvarVagas(uid: string, vagas: VagaRecomendada[]) {
+  localStorage.setItem(storageKey(uid), JSON.stringify(vagas));
 }
 
 export async function buscarVagasIA(profile: VagasInput): Promise<VagaRecomendada[]> {

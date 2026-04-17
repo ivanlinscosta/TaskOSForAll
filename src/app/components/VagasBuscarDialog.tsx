@@ -97,7 +97,7 @@ interface VagasBuscarDialogProps {
 }
 
 export function VagasBuscarDialog({ open, onOpenChange, onSuccess }: VagasBuscarDialogProps) {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
   const { setVagasAtivas, setVagasDismissed } = useAppStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -118,7 +118,7 @@ export function VagasBuscarDialog({ open, onOpenChange, onSuccess }: VagasBuscar
         objetivoCarreira: userProfile?.objetivoCarreira,
         curriculoTexto: userProfile?.curriculoTexto,
       });
-      salvarVagas(vagas);
+      salvarVagas(user!.uid, vagas);
       setVagasAtivas(true);
       onOpenChange(false);
       toast.success('Vagas encontradas! Abrindo sua lista...');

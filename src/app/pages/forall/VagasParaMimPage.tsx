@@ -115,12 +115,13 @@ function VagaCard({ vaga }: { vaga: VagaRecomendada }) {
 }
 
 export function VagasParaMimPage() {
-  const { userProfile } = useAuth();
-  const [vagas, setVagas] = useState<VagaRecomendada[]>(() => getVagasSalvas());
+  const { user, userProfile } = useAuth();
+  const uid = user?.uid ?? '';
+  const [vagas, setVagas] = useState<VagaRecomendada[]>(() => getVagasSalvas(uid));
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleSuccess = () => {
-    setVagas(getVagasSalvas());
+    setVagas(getVagasSalvas(uid));
   };
 
   return (
