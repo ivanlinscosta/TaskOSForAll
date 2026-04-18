@@ -1,6 +1,5 @@
 /**
- * Serviço de integração com OpenAI API
- * Responsável por fazer chamadas reais à API do OpenAI
+ * Serviço de integração com OpenAI API e Google Gemini API
  */
 
 interface OpenAIMessage {
@@ -16,9 +15,62 @@ interface OpenAIResponse {
   }>;
 }
 
+// ─── OpenAI ────────────────────────────────────────────────────────────────
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = 'gpt-4o-mini'; // Modelo mais disponível e acessível
+const MODEL = 'gpt-4o-mini';
+
+// ─── Gemini ─────────────────────────────────────────────────────────────────
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+interface GeminiPart { text: string }
+interface GeminiContent { role: 'user' | 'model'; parts: GeminiPart[] }
+interface GeminiResponse {
+  candidates: Array<{ content: { parts: GeminiPart[] } }>;
+}
+
+async function callGemini(
+  systemPrompt: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  userMessage: string,
+): Promise<string> {
+  if (!GEMINI_API_KEY) {
+    return generateMockResponse(userMessage);
+  }
+
+  // Build contents array: interleave history then the new user turn
+  const contents: GeminiContent[] = history.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+  contents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+  try {
+    const res = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { temperature: 0.6, maxOutputTokens: 1200 },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('Gemini API Error:', err);
+      return generateMockResponse(userMessage);
+    }
+
+    const data: GeminiResponse = await res.json();
+    return data.candidates[0]?.content?.parts[0]?.text ?? '';
+  } catch (error) {
+    console.error('Erro ao chamar Gemini API:', error);
+    return generateMockResponse(userMessage);
+  }
+}
 
 /**
  * Verifica se a chave de API está configurada
@@ -394,13 +446,7 @@ O TaskAll é uma plataforma dual (vida pessoal + trabalho) que combina gestão d
 
 Seja direto e útil. Se o usuário perguntar sobre dados específicos da conta dele (ex.: quantas tarefas tem), explique que ele pode verificar no módulo correspondente.`;
 
-  const messages: OpenAIMessage[] = [
-    { role: 'system', content: systemMessage },
-    ...conversationHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    { role: 'user', content: question },
-  ];
-
-  return callOpenAI(messages, 0.6, 1200);
+  return callGemini(systemMessage, conversationHistory, question);
 }
 
 /**
