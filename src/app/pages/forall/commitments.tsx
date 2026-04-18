@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, ExternalLink, Loader, Plus, Sparkles } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Loader, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import * as gcalService from '../../../services/google-calendar-service';
 import { useAuth } from '../../../lib/auth-context';
@@ -219,6 +219,43 @@ export function ForAllCommitmentsPage() {
     }
   };
 
+  const handleExportAppleCalendar = () => {
+    const fmt = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TaskOS For All//PT',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+    ];
+
+    events.forEach((ev) => {
+      const start = fmt(ev.date);
+      const end = fmt(new Date(ev.date.getTime() + 60 * 60 * 1000));
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${ev.id}@taskos`);
+      lines.push(`DTSTAMP:${fmt(new Date())}`);
+      lines.push(`DTSTART:${start}`);
+      lines.push(`DTEND:${end}`);
+      lines.push(`SUMMARY:${ev.title.replace(/\n/g, '\\n')}`);
+      if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`);
+      lines.push('END:VEVENT');
+    });
+
+    lines.push('END:VCALENDAR');
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'taskos-compromissos.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Arquivo .ics gerado! Abra-o no Apple Calendar para importar.');
+  };
+
   const weekStart = startOfWeek(weekAnchor, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   const selectedEvents = events.filter((event) => isSameDay(event.date, selectedDate));
@@ -243,21 +280,52 @@ export function ForAllCommitmentsPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {!gcalConnected ? (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleConnectGoogleCalendar}
-              disabled={gcalLoading}
+          {/* Sincronizar com outras agendas */}
+          <div className="flex items-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-background-secondary)] px-3 py-1.5">
+            <span className="text-xs text-[var(--theme-muted-foreground)] mr-1">Sincronizar com outras agendas</span>
+            {gcalConnected ? (
+              <Badge className="bg-emerald-100 text-emerald-700 gap-1 text-xs px-2 py-0.5">
+                <CalendarDays className="h-3 w-3" /> Google
+              </Badge>
+            ) : (
+              <button
+                onClick={handleConnectGoogleCalendar}
+                disabled={gcalLoading}
+                title="Conectar Google Calendar"
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:bg-zinc-800 dark:text-gray-200 dark:hover:bg-zinc-700"
+              >
+                {/* Google Calendar icon */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="18" height="18" rx="3" fill="white" stroke="#E0E0E0"/>
+                  <rect x="3" y="8" width="18" height="2" fill="#4285F4"/>
+                  <rect x="7" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+                  <rect x="15" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+                  <text x="12" y="19" textAnchor="middle" fontSize="7" fontWeight="700" fill="#4285F4">G</text>
+                </svg>
+                {gcalLoading ? 'Conectando...' : 'Google'}
+              </button>
+            )}
+            <button
+              onClick={handleExportAppleCalendar}
+              title="Exportar para Apple Calendar (.ics)"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:hover:bg-zinc-700"
             >
-              <ExternalLink className="h-4 w-4" />
-              {gcalLoading ? 'Conectando...' : 'Conectar Google Calendar'}
-            </Button>
-          ) : (
-            <Badge className="bg-emerald-100 text-emerald-700 gap-1">
-              <CalendarDays className="h-3 w-3" /> Google Calendar conectado
-            </Badge>
-          )}
+              {/* Apple Calendar icon */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="4" width="20" height="18" rx="3" fill="white" stroke="#E0E0E0"/>
+                <rect x="2" y="4" width="20" height="5" rx="3" fill="#FF3B30"/>
+                <rect x="2" y="7" width="20" height="2" fill="#FF3B30"/>
+                <text x="12" y="9.5" textAnchor="middle" fontSize="4.5" fontWeight="700" fill="white">
+                  {new Date().toLocaleString('pt-BR',{month:'short'}).toUpperCase()}
+                </text>
+                <text x="12" y="18" textAnchor="middle" fontSize="8" fontWeight="700" fill="#1C1C1E">
+                  {new Date().getDate()}
+                </text>
+              </svg>
+              Apple
+            </button>
+          </div>
+
           <Button variant="outline" className="gap-2" onClick={() => navigate(`/chat?workspace=${workspace}`)}>
             <Sparkles className="h-4 w-4" />
             Chat guiado
