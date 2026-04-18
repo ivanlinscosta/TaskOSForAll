@@ -1,7 +1,7 @@
 import { createOwnedRecord } from './forall-data-service';
 import { COLLECTIONS } from '../lib/firebase-config';
 
-export type ChatAction = 'tarefa' | 'gasto' | 'feedback' | 'viagem';
+export type ChatAction = 'tarefa' | 'gasto' | 'feedback' | 'viagem' | 'ajuda';
 export type ChatWorkspace = 'work' | 'life';
 
 type SaveContext = {

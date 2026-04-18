@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CheckSquare,
   Heart,
+  HelpCircle,
   Loader2,
   MessageSquare,
   Plane,
@@ -19,8 +20,9 @@ import { toast } from 'sonner';
 import { useAuth } from '../../../lib/auth-context';
 import { getGoalLabel } from '../../../lib/taskos-forall';
 import { saveChatData, type ChatAction, type ChatWorkspace } from '../../../services/chat-save-service';
+import { askPlatformHelp } from '../../../lib/openai-service';
 
-type ChatStep = 'choose_action' | 'choose_workspace' | 'collect' | 'confirm' | 'saving' | 'success';
+type ChatStep = 'choose_action' | 'choose_workspace' | 'collect' | 'confirm' | 'saving' | 'success' | 'ajuda';
 
 interface FieldDef {
   key: string;
@@ -44,6 +46,7 @@ const ACTIONS: Array<{
   description: string;
   icon: any;
   recommendedGoalIds: string[];
+  alwaysShow?: boolean;
 }> = [
   {
     value: 'tarefa',
@@ -72,6 +75,14 @@ const ACTIONS: Array<{
     description: 'Salve destino, datas e objetivo.',
     icon: Plane,
     recommendedGoalIds: ['planejar_viagens', 'usar_chat_rapido'],
+  },
+  {
+    value: 'ajuda',
+    label: 'Pedir ajuda',
+    description: 'Tire dúvidas sobre a plataforma.',
+    icon: HelpCircle,
+    recommendedGoalIds: [],
+    alwaysShow: true,
   },
 ];
 
@@ -110,6 +121,7 @@ const FIELDS: Record<ChatAction, FieldDef[]> = {
     { key: 'dataVolta', question: 'Qual a data de volta?', type: 'date', required: false },
     { key: 'objetivo', question: 'Qual o objetivo da viagem?', type: 'textarea', required: false, placeholder: 'Ex.: férias ou congresso' },
   ],
+  ajuda: [],
 };
 
 function makeMessage(role: 'bot' | 'user', content: string): Message {
@@ -127,7 +139,7 @@ function MessageBubble({ message }: { message: Message }) {
       )}
       <div
         className={cn(
-          'max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+          'max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
           isBot
             ? 'rounded-tl-md border border-[var(--theme-border)] bg-[var(--theme-card)] text-[var(--theme-foreground)]'
             : 'rounded-tr-md bg-[var(--theme-accent)] text-[var(--theme-accent-foreground)]',
@@ -161,6 +173,9 @@ export function ChatGuiado() {
   const [currentFieldIndex, setCurrentFieldIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [helpInput, setHelpInput] = useState('');
+  const [isHelpLoading, setIsHelpLoading] = useState(false);
+  const [helpConversation, setHelpConversation] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -172,6 +187,15 @@ export function ChatGuiado() {
     const workspaceParam = searchParams.get('workspace') as ChatWorkspace | null;
 
     if (actionParam && ACTIONS.some((item) => item.value === actionParam) && !selectedAction) {
+      if (actionParam === 'ajuda') {
+        setSelectedAction('ajuda');
+        setStep('ajuda');
+        setMessages([
+          makeMessage('bot', 'Olá! Estou aqui para tirar suas dúvidas sobre o TaskAll. O que você gostaria de saber?'),
+        ]);
+        return;
+      }
+
       setSelectedAction(actionParam);
       setStep(workspaceParam && (workspaceParam === 'work' || workspaceParam === 'life') ? 'collect' : 'choose_workspace');
 
@@ -198,12 +222,14 @@ export function ChatGuiado() {
     const workGoals = userProfile?.preferencias?.workGoals ?? [];
     const lifeGoals = userProfile?.preferencias?.lifeGoals ?? [];
     const activeGoals = new Set([...workGoals, ...lifeGoals]);
-    return ACTIONS.filter((action) =>
-      action.recommendedGoalIds.some((goalId) => activeGoals.has(goalId)),
+    const filtered = ACTIONS.filter((action) =>
+      !action.alwaysShow && action.recommendedGoalIds.some((goalId) => activeGoals.has(goalId)),
     );
+    const ajudaAction = ACTIONS.find((a) => a.value === 'ajuda')!;
+    return [...filtered, ajudaAction];
   }, [userProfile?.preferencias]);
 
-  const currentField = selectedAction ? FIELDS[selectedAction][currentFieldIndex] : null;
+  const currentField = selectedAction && selectedAction !== 'ajuda' ? FIELDS[selectedAction][currentFieldIndex] : null;
 
   const restart = () => {
     setMessages([makeMessage('bot', 'Sessão encerrada. Escolha uma nova ação para continuar.')]);
@@ -213,10 +239,25 @@ export function ChatGuiado() {
     setAnswers({});
     setCurrentFieldIndex(0);
     setInputValue('');
+    setHelpInput('');
+    setHelpConversation([]);
   };
 
   const handleChooseAction = (action: ChatAction) => {
     const actionLabel = ACTIONS.find((item) => item.value === action)?.label || action;
+
+    if (action === 'ajuda') {
+      setSelectedAction('ajuda');
+      setStep('ajuda');
+      setHelpConversation([]);
+      setMessages((prev) => [
+        ...prev,
+        makeMessage('user', actionLabel),
+        makeMessage('bot', 'Olá! Estou aqui para tirar suas dúvidas sobre o TaskAll. 😊\n\nPode me perguntar sobre qualquer funcionalidade — tarefas, planejamento, finanças, carreira, chat guiado, perfil ou qualquer outra coisa. Como posso te ajudar?'),
+      ]);
+      return;
+    }
+
     setSelectedAction(action);
     setStep('choose_workspace');
     setMessages((prev) => [
@@ -325,6 +366,33 @@ export function ChatGuiado() {
     }
   };
 
+  const handleHelpQuestion = async () => {
+    const question = helpInput.trim();
+    if (!question) return;
+
+    setHelpInput('');
+    setMessages((prev) => [...prev, makeMessage('user', question)]);
+    setIsHelpLoading(true);
+
+    try {
+      const answer = await askPlatformHelp(question, helpConversation);
+      setHelpConversation((prev) => [
+        ...prev,
+        { role: 'user', content: question },
+        { role: 'assistant', content: answer },
+      ]);
+      setMessages((prev) => [...prev, makeMessage('bot', answer)]);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        makeMessage('bot', 'Desculpe, não consegui processar sua pergunta agora. Tente novamente.'),
+      ]);
+    } finally {
+      setIsHelpLoading(false);
+    }
+  };
+
   const skipCurrentField = () => {
     if (!currentField || !selectedAction || currentField.required) return;
     void handleAnswer('');
@@ -348,27 +416,29 @@ export function ChatGuiado() {
         </div>
 
         <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto bg-[var(--theme-background)] px-4 py-5">
-          <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 text-sm text-[var(--theme-muted-foreground)]">
-            <p className="font-medium text-[var(--theme-foreground)]">Preferências ativas</p>
-            <p className="mt-2">
-              Trabalho: {(userProfile?.preferencias?.workGoals ?? []).map(getGoalLabel).join(', ') || 'nenhuma'}
-            </p>
-            <p className="mt-1">
-              Vida pessoal: {(userProfile?.preferencias?.lifeGoals ?? []).map(getGoalLabel).join(', ') || 'nenhuma'}
-            </p>
-          </div>
+          {step !== 'ajuda' && (
+            <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 text-sm text-[var(--theme-muted-foreground)]">
+              <p className="font-medium text-[var(--theme-foreground)]">Preferências ativas</p>
+              <p className="mt-2">
+                Trabalho: {(userProfile?.preferencias?.workGoals ?? []).map(getGoalLabel).join(', ') || 'nenhuma'}
+              </p>
+              <p className="mt-1">
+                Vida pessoal: {(userProfile?.preferencias?.lifeGoals ?? []).map(getGoalLabel).join(', ') || 'nenhuma'}
+              </p>
+            </div>
+          )}
 
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
 
-          {isSaving && (
+          {(isSaving || isHelpLoading) && (
             <div className="flex justify-start gap-2">
               <div className="mt-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-foreground)]">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
               <div className="rounded-2xl rounded-tl-md border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 text-sm">
-                Salvando...
+                {isSaving ? 'Salvando...' : 'Pensando...'}
               </div>
             </div>
           )}
@@ -528,6 +598,48 @@ export function ChatGuiado() {
                 <RotateCcw className="h-4 w-4" />
                 Iniciar nova jornada
               </button>
+            </div>
+          )}
+
+          {step === 'ajuda' && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <textarea
+                  value={helpInput}
+                  onChange={(e) => setHelpInput(e.target.value)}
+                  placeholder="Escreva sua dúvida sobre o TaskAll..."
+                  rows={2}
+                  disabled={isHelpLoading}
+                  className="flex-1 resize-none rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-background)] px-4 py-3 text-sm outline-none disabled:opacity-50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleHelpQuestion();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleHelpQuestion()}
+                  disabled={isHelpLoading || !helpInput.trim()}
+                  className="self-end rounded-2xl bg-[var(--theme-accent)] p-3 text-[var(--theme-accent-foreground)] transition disabled:opacity-40"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[var(--theme-muted-foreground)]">
+                  Pressione Enter para enviar · Shift+Enter para nova linha
+                </p>
+                <button
+                  type="button"
+                  onClick={restart}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--theme-border)] px-3 py-1.5 text-xs text-[var(--theme-muted-foreground)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Voltar ao menu
+                </button>
+              </div>
             </div>
           )}
         </div>

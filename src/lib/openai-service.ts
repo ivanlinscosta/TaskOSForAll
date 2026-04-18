@@ -97,7 +97,23 @@ function generateMockResponse(prompt: string): string {
     return `# Análise de Produtividade\n\nTaxa de conclusão de 78% indica boa produtividade. Recomenda-se manter o ritmo atual e revisar tarefas pendentes para priorização.`;
   }
   
-  return `Entendi sua solicitação. Como o OpenAI não está totalmente configurado, aqui está uma resposta padrão. Configure sua chave de API do OpenAI em VITE_OPENAI_API_KEY para respostas mais precisas.`;
+  if (promptLower.includes('tarefa') || promptLower.includes('kanban')) {
+    return `No TaskAll, você gerencia tarefas em um quadro Kanban com 3 colunas: A Fazer, Em Progresso e Concluído.\n\nPara criar uma tarefa: acesse o menu "Tarefas", escolha o workspace (Trabalho ou Vida pessoal) e clique em "+ Nova tarefa". Você também pode usar o Chat Guiado selecionando "Cadastrar tarefa".`;
+  }
+
+  if (promptLower.includes('financ') || promptLower.includes('gasto')) {
+    return `Na seção de Finanças do TaskAll você pode registrar gastos e receitas, categorizá-los e visualizar seu fluxo de caixa mensal.\n\nPara adicionar um gasto rapidamente, use o Chat Guiado > "Cadastrar gasto".`;
+  }
+
+  if (promptLower.includes('planejamento') || promptLower.includes('compromisso') || promptLower.includes('calendário')) {
+    return `O módulo de Planejamento é um calendário de compromissos. Você pode criar eventos com título, data, horário e tipo.\n\nAcesse pelo menu lateral > "Planejamento" e escolha o workspace desejado.`;
+  }
+
+  if (promptLower.includes('chat') || promptLower.includes('guiado')) {
+    return `O Chat Guiado é um assistente conversacional que te ajuda a registrar informações rapidamente. Você pode cadastrar tarefas, gastos, feedbacks e viagens de forma guiada.\n\nBasta escolher uma ação na tela atual e seguir as perguntas do assistente.`;
+  }
+
+  return `Sou o assistente do TaskAll! Posso te ajudar com dúvidas sobre qualquer módulo da plataforma: Tarefas (Kanban), Planejamento, Finanças, Carreira, Desenvolvimento e Chat Guiado.\n\nConfigure sua chave VITE_OPENAI_API_KEY para respostas ainda mais completas. O que você gostaria de saber?`;
 }
 
 /**
@@ -295,6 +311,96 @@ Forneça insights de produtividade e recomendações.`;
     0.7,
     1500
   );
+}
+
+/**
+ * Responde perguntas sobre a plataforma TaskAll
+ */
+export async function askPlatformHelp(
+  question: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+): Promise<string> {
+  const systemMessage = `Você é o Assistente Inteligente do TaskAll, uma plataforma de produtividade pessoal e profissional que ajuda as pessoas a organizarem sua vida, carreira e finanças em um só lugar.
+
+Responda sempre em português, de forma clara, amigável e direta. Use linguagem acessível e seja prestativo. Quando relevante, indique o caminho exato no menu para o usuário encontrar a funcionalidade.
+
+=== SOBRE O TASKALL ===
+O TaskAll é uma plataforma dual (vida pessoal + trabalho) que combina gestão de tarefas, planejamento, finanças, carreira, desenvolvimento pessoal e um assistente de IA — tudo em um só lugar.
+
+=== MÓDULOS DA PLATAFORMA ===
+
+📊 DASHBOARD
+- Visão geral com resumo do dia: tarefas pendentes, gastos recentes, próximos compromissos
+- Card "Próxima melhor ação" — sugestão inteligente da IA baseada nos seus objetivos ativos
+- Métricas rápidas de produtividade
+
+✅ TAREFAS (Kanban Board)
+- Quadro Kanban com 3 colunas: A Fazer (backlog), Em Progresso (doing), Concluído (done)
+- Disponível em dois workspaces: Trabalho e Vida pessoal
+- Campos: título, descrição, prioridade (baixa/média/alta), prazo e status
+- Arraste e solte os cards para mudar o status
+- Criação via formulário ("+ Nova tarefa") ou via Chat Guiado
+- O botão "Chat guiado" abre o assistente para criar tarefas de forma conversacional
+
+📅 PLANEJAMENTO (Compromissos)
+- Calendário visual de compromissos e eventos
+- Criação de eventos com título, data, horário e tipo (reunião, médico, escola, etc.)
+- Disponível nos workspaces de Trabalho e Vida pessoal
+
+💰 FINANÇAS
+- Registro de gastos e receitas por categoria
+- Separação entre gastos pessoais e profissionais
+- Resumo mensal com totais e categorias
+- Adicione gastos via formulário ou pelo Chat Guiado
+
+💼 CARREIRA
+- Gestão de objetivos e metas de carreira
+- Registro de feedbacks recebidos e fornecidos
+- Acompanhamento do desenvolvimento profissional
+
+📚 DESENVOLVIMENTO
+- Trilhas de aprendizado personalizadas
+- Registro de cursos, livros e certificações
+- Conteúdos recomendados com base no seu perfil
+
+💬 CHAT GUIADO (esta tela)
+- Assistente conversacional para registrar informações rapidamente
+- Ações disponíveis: Cadastrar tarefa, Cadastrar gasto, Registrar feedback, Cadastrar viagem
+- A experiência é personalizada com base nos objetivos configurados no perfil
+- Acesse pelo menu lateral > "Chat" ou pelo botão "Chat guiado" em qualquer módulo
+- "Pedir ajuda" abre esta conversa para tirar dúvidas sobre a plataforma
+
+🎯 OBJETIVOS E GAMIFICAÇÃO
+- Configure seus objetivos de trabalho e vida pessoal no onboarding ou no Perfil
+- A plataforma personaliza sugestões e exibe apenas as ações mais relevantes para você
+- Sistema de conquistas por uso consistente da plataforma
+
+👤 PERFIL E CONFIGURAÇÕES
+- Edição de nome, cargo e foto de perfil
+- Configuração de objetivos por workspace (trabalho e vida pessoal)
+- Preferências de notificações e aparência
+
+🔄 WORKSPACES
+- O TaskAll separa seu mundo em dois contextos: Trabalho e Vida pessoal
+- Cada workspace tem seus próprios dados, tarefas, gastos e compromissos
+- Alterne pelo menu lateral
+
+=== DICAS RÁPIDAS ===
+- Criar tarefa rapidamente: menu Tarefas > "+ Nova tarefa" ou Chat > "Cadastrar tarefa"
+- Ver gastos do mês: menu Finanças, filtre por período
+- Adicionar compromisso: menu Planejamento, clique no dia desejado
+- Configurar objetivos: menu Perfil > Preferências
+- O Dashboard sempre mostra o resumo mais importante do dia
+
+Seja direto e útil. Se o usuário perguntar sobre dados específicos da conta dele (ex.: quantas tarefas tem), explique que ele pode verificar no módulo correspondente.`;
+
+  const messages: OpenAIMessage[] = [
+    { role: 'system', content: systemMessage },
+    ...conversationHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    { role: 'user', content: question },
+  ];
+
+  return callOpenAI(messages, 0.6, 1200);
 }
 
 /**
