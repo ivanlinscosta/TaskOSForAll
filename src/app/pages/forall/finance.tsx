@@ -139,6 +139,12 @@ export function ForAllFinancePage() {
   // Filtro de categoria na aba de despesas
   const [despesaFilter, setDespesaFilter] = useState<string>('todas');
 
+  // Categorias padrão (usadas para detectar categorias customizadas)
+  const CATEGORIAS_PADRAO = new Set(['moradia', 'alimentacao', 'transporte', 'saude', 'educacao', 'assinaturas', 'viagem', 'outros']);
+
+  // Campo livre para categoria personalizada na edição/criação de despesa
+  const [customCategoriaInput, setCustomCategoriaInput] = useState('');
+
   // Popup de detalhes dos cards fixo/assinatura/variavel
   const [detailsPanel, setDetailsPanel] = useState<'fixo' | 'assinatura' | 'variavel' | null>(null);
 
@@ -227,10 +233,13 @@ export function ForAllFinancePage() {
       ? item.data.toISOString().split('T')[0]
       : typeof item.data === 'string' ? item.data.slice(0, 10)
       : new Date().toISOString().split('T')[0];
+    const categoriaValue = item.categoria || 'outros';
+    const isCustomCategoria = !CATEGORIAS_PADRAO.has(categoriaValue);
+    setCustomCategoriaInput(isCustomCategoria ? categoriaValue : '');
     setExpenseForm({
       descricao: item.descricao || '',
       valor: String(item.valor || ''),
-      categoria: item.categoria || 'outros',
+      categoria: isCustomCategoria ? '__custom__' : categoriaValue,
       tipoGasto: (item.tipoGasto || 'variavel') as ExpenseType,
       natureza: 'despesa',
       data: dataStr,
@@ -299,21 +308,25 @@ export function ForAllFinancePage() {
       return;
     }
 
+    const categoriaFinal = expenseForm.categoria === '__custom__'
+      ? (customCategoriaInput.trim() || 'outros')
+      : expenseForm.categoria;
+
     // Edit mode
     if (editingExpenseId) {
       try {
         await atualizarCusto(editingExpenseId, {
           descricao: expenseForm.descricao,
           valor,
-          categoria: expenseForm.categoria as any,
+          categoria: categoriaFinal as any,
           tipo: expenseForm.tipoGasto as any,
           data: new Date(expenseForm.data),
         });
         setCustos(prev => prev.map(c => c.id === editingExpenseId
-          ? { ...c, descricao: expenseForm.descricao, valor, categoria: expenseForm.categoria, tipo: expenseForm.tipoGasto, data: expenseForm.data }
+          ? { ...c, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipo: expenseForm.tipoGasto, data: expenseForm.data }
           : c));
         setExpenses(prev => prev.map(e => e.id === editingExpenseId
-          ? { ...e, descricao: expenseForm.descricao, valor, categoria: expenseForm.categoria, tipoGasto: expenseForm.tipoGasto, data: expenseForm.data }
+          ? { ...e, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, data: expenseForm.data }
           : e));
         toast.success('Despesa atualizada');
       } catch {
@@ -321,6 +334,7 @@ export function ForAllFinancePage() {
       } finally {
         setEditingExpenseId(null);
         setExpenseDialog(false);
+        setCustomCategoriaInput('');
         setExpenseForm({ descricao: '', valor: '', categoria: 'outros', tipoGasto: 'variavel', natureza: 'despesa', data: new Date().toISOString().split('T')[0] });
       }
       return;
@@ -337,7 +351,7 @@ export function ForAllFinancePage() {
         workspaceType: workspace === 'work' ? 'work' : 'life',
         descricao: expenseForm.descricao,
         valor,
-        categoria: expenseForm.categoria,
+        categoria: categoriaFinal,
         tipoGasto: expenseForm.tipoGasto,
         tipo: workspace === 'work' ? 'trabalho' : 'pessoal',
         natureza: 'despesa',
@@ -372,6 +386,7 @@ export function ForAllFinancePage() {
       }
 
       setExpenseDialog(false);
+      setCustomCategoriaInput('');
       setExpenseForm({
         descricao: '',
         valor: '',
@@ -1345,7 +1360,7 @@ export function ForAllFinancePage() {
         }}
       />
 
-      <Dialog open={expenseDialog} onOpenChange={(v) => { if (!v) setEditingExpenseId(null); setExpenseDialog(v); }}>
+      <Dialog open={expenseDialog} onOpenChange={(v) => { if (!v) { setEditingExpenseId(null); setCustomCategoriaInput(''); } setExpenseDialog(v); }}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle>{editingExpenseId ? 'Editar despesa' : 'Nova despesa'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
@@ -1357,7 +1372,13 @@ export function ForAllFinancePage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={expenseForm.categoria} onValueChange={(value) => setExpenseForm((prev) => ({ ...prev, categoria: value }))}>
+                <Select
+                  value={expenseForm.categoria}
+                  onValueChange={(value) => {
+                    setExpenseForm((prev) => ({ ...prev, categoria: value }));
+                    if (value !== '__custom__') setCustomCategoriaInput('');
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="moradia">Moradia</SelectItem>
@@ -1368,8 +1389,17 @@ export function ForAllFinancePage() {
                     <SelectItem value="assinaturas">Assinaturas</SelectItem>
                     <SelectItem value="viagem">Viagem</SelectItem>
                     <SelectItem value="outros">Outros</SelectItem>
+                    <SelectItem value="__custom__">✏️ Personalizado…</SelectItem>
                   </SelectContent>
                 </Select>
+                {expenseForm.categoria === '__custom__' && (
+                  <Input
+                    value={customCategoriaInput}
+                    onChange={(e) => setCustomCategoriaInput(e.target.value)}
+                    placeholder="Ex.: academia, pet, presentes..."
+                    autoFocus
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1392,7 +1422,7 @@ export function ForAllFinancePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditingExpenseId(null); setExpenseDialog(false); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setEditingExpenseId(null); setCustomCategoriaInput(''); setExpenseDialog(false); }}>Cancelar</Button>
             <Button className="bg-red-500 text-white hover:bg-red-600" onClick={handleSaveExpense}>{editingExpenseId ? 'Salvar alterações' : 'Salvar despesa'}</Button>
           </DialogFooter>
         </DialogContent>
