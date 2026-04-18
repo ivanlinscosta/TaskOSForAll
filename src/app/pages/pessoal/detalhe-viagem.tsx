@@ -39,7 +39,7 @@ const STATUS_CORES: Record<string, string> = {
 };
 
 const STATUS_TEXT_CORES: Record<string, string> = {
-  planejada: '#059669',
+  planejada: '#0D5C7A',
   em_andamento: '#3B82F6',
   concluida: '#6B7280',
   cancelada: '#EF4444',
@@ -340,7 +340,7 @@ export function DetalheViagem() {
                 <p className="text-xs text-[var(--theme-muted-foreground)]">Saldo Restante</p>
                 <p
                   className="text-xl font-bold"
-                  style={{ color: saldoRestante >= 0 ? '#059669' : '#EF4444' }}
+                  style={{ color: saldoRestante >= 0 ? '#0D5C7A' : '#EF4444' }}
                 >
                   {formatCurrency(Math.abs(saldoRestante))}
                   {saldoRestante < 0 && ' (estourado)'}

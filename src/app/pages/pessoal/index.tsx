@@ -104,7 +104,7 @@ export function PessoalIndex() {
               </div>
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ background: 'rgba(5, 150, 105, 0.1)' }}
+                style={{ background: 'rgba(13, 92, 122, 0.1)' }}
               >
                 <Plane className="h-6 w-6" style={{ color: 'var(--theme-accent)' }} />
               </div>
@@ -152,7 +152,7 @@ export function PessoalIndex() {
               </div>
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ background: 'rgba(5, 150, 105, 0.1)' }}
+                style={{ background: 'rgba(13, 92, 122, 0.1)' }}
               >
                 <CheckSquare className="h-6 w-6" style={{ color: 'var(--theme-accent)' }} />
               </div>
@@ -176,7 +176,7 @@ export function PessoalIndex() {
               </div>
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ background: 'rgba(5, 150, 105, 0.1)' }}
+                style={{ background: 'rgba(13, 92, 122, 0.1)' }}
               >
                 <Target className="h-6 w-6" style={{ color: 'var(--theme-accent)' }} />
               </div>
@@ -208,7 +208,7 @@ export function PessoalIndex() {
                     {proximaViagem.destino}
                   </h3>
                   <Badge
-                    style={{ background: 'rgba(5,150,105,0.15)', color: '#059669' }}
+                    style={{ background: 'rgba(5,150,105,0.15)', color: '#0D5C7A' }}
                   >
                     Planejada
                   </Badge>

@@ -1,0 +1,11 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <rect width="60" height="60" rx="14" fill="white" stroke="#E8EDF0" stroke-width="1"/>
+  <!-- barras subindo — evolução de carreira -->
+  <rect x="11" y="40" width="10" height="10" rx="2.5" fill="#0D5C7A" opacity="0.28"/>
+  <rect x="25" y="30" width="10" height="20" rx="2.5" fill="#0D5C7A" opacity="0.6"/>
+  <rect x="39" y="18" width="10" height="32" rx="2.5" fill="#0D5C7A"/>
+  <!-- linha base -->
+  <line x1="9" y1="50" x2="51" y2="50" stroke="#0D5C7A" stroke-width="1.5" stroke-linecap="round" opacity="0.22"/>
+  <!-- linha de tendência diagonal tracejada -->
+  <line x1="13" y1="46" x2="46" y2="22" stroke="#0D5C7A" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2.5,3" opacity="0.32"/>
+</svg>

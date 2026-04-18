@@ -24,7 +24,7 @@ type EventItem = {
 
 const TYPE_META: Record<EventItem['type'], { label: string; badgeClass: string; cardClass: string }> = {
   reuniao:  { label: 'Reunião',  badgeClass: 'bg-blue-100 text-blue-700',   cardClass: 'border-blue-200 bg-blue-500 text-white' },
-  tarefa:   { label: 'Prazo',    badgeClass: 'bg-orange-100 text-orange-700', cardClass: 'border-orange-200 bg-orange-500 text-white' },
+  tarefa:   { label: 'Prazo',    badgeClass: 'bg-[#E8F5F8] text-[#0D5C7A]', cardClass: 'border-[#C8E8EF] bg-[#0D5C7A] text-white' },
   viagem:   { label: 'Viagem',   badgeClass: 'bg-violet-100 text-violet-700', cardClass: 'border-violet-200 bg-violet-500 text-white' },
   google:   { label: 'Google',   badgeClass: 'bg-emerald-100 text-emerald-700', cardClass: 'border-emerald-200 bg-emerald-500 text-white' },
   apple:    { label: 'Apple',    badgeClass: 'bg-gray-100 text-gray-700',    cardClass: 'border-gray-200 bg-gray-700 text-white' },

@@ -106,7 +106,7 @@ function WizardLayout({ step, children }: { step: Exclude<Step, 6>; children: Re
       />
       <div
         className="absolute -bottom-40 -left-40 h-[32rem] w-[32rem] rounded-full opacity-20 blur-3xl pointer-events-none"
-        style={{ background: '#EC7000' }}
+        style={{ background: '#0D5C7A' }}
       />
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -1192,7 +1192,7 @@ function Step5({
           </div>
 
           {[
-            { key: 'profissional', title: 'Desenvolvimento profissional',  subtitle: 'Carreira, hard skills e objetivo profissional', items: grouped.profissional, color: '#EC7000' },
+            { key: 'profissional', title: 'Desenvolvimento profissional',  subtitle: 'Carreira, hard skills e objetivo profissional', items: grouped.profissional, color: '#0D5C7A' },
             { key: 'financas',     title: 'Desenvolvimento financeiro',    subtitle: 'Educação financeira, orçamento e investimentos', items: grouped.financas,     color: '#10B981' },
             { key: 'pessoal',      title: 'Desenvolvimento pessoal',       subtitle: 'Soft skills, hábitos e bem-estar',               items: grouped.pessoal,      color: '#8B5CF6' },
           ].map((group) =>

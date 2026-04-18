@@ -191,7 +191,7 @@ export function Dashboard() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {highlights.slice(0, 3).map((h, idx) => {
               const meta = {
-                profissional: { color: '#EC7000', Icon: Briefcase, label: 'Profissional' },
+                profissional: { color: '#0D5C7A', Icon: Briefcase, label: 'Profissional' },
                 financas:     { color: '#10B981', Icon: Wallet,    label: 'Financeiro' },
                 pessoal:      { color: '#8B5CF6', Icon: Heart,     label: 'Pessoal' },
               }[h.categoria];
@@ -247,7 +247,7 @@ export function Dashboard() {
         </h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {[
-            { key: 'profissional', title: 'Profissional', subtitle: userProfile?.objetivoCarreira || 'Carreira e hard skills', items: profItems,    Icon: Briefcase, color: '#EC7000' },
+            { key: 'profissional', title: 'Profissional', subtitle: userProfile?.objetivoCarreira || 'Carreira e hard skills', items: profItems,    Icon: Briefcase, color: '#0D5C7A' },
             { key: 'financas',     title: 'Financeiro',   subtitle: fn?.objetivosFinanceiros?.[0] || 'Finanças e investimentos', items: finItems,     Icon: Wallet,    color: '#10B981' },
             { key: 'pessoal',      title: 'Pessoal',      subtitle: softWeakest ? `Desenvolver: ${softWeakest[0]}` : 'Soft skills e hábitos',       items: pessoalItems, Icon: Heart,     color: '#8B5CF6' },
           ].map((cat) => {
@@ -284,7 +284,7 @@ export function Dashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Briefcase className="h-4 w-4 text-[#EC7000]" /> Carreira
+              <Briefcase className="h-4 w-4 text-[#0D5C7A]" /> Carreira
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">

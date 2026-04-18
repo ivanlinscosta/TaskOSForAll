@@ -66,7 +66,7 @@ const SECTION_META: Record<SectionKey, {
   profissional: {
     title: 'Desenvolvimento Profissional',
     subtitle: 'Carreira, hard skills e objetivo profissional',
-    Icon: Briefcase, accent: '#EC7000', bg: '#EC700012',
+    Icon: Briefcase, accent: '#0D5C7A', bg: '#0D5C7A12',
   },
   financas: {
     title: 'Desenvolvimento Financeiro',

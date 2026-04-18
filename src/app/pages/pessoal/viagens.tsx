@@ -38,7 +38,7 @@ const STATUS_CORES: Record<string, string> = {
 };
 
 const STATUS_TEXT_CORES: Record<string, string> = {
-  planejada: '#059669',
+  planejada: '#0D5C7A',
   em_andamento: '#3B82F6',
   concluida: '#6B7280',
   cancelada: '#EF4444',

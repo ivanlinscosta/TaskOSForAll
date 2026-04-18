@@ -36,22 +36,24 @@
   --theme-hover: rgba(236, 112, 0, 0.08);
 }
 
-/* Tema Pessoal (Personal Mode - Verde Esmeralda) */
+/* Tema Pessoal (TaskAll Blue) */
 .theme-pessoal {
-  --theme-primary: #059669;
-  --theme-secondary: #0284C7;
-  --theme-background: #FFFFFF;
-  --theme-background-secondary: #F0FDF4;
-  --theme-foreground: #1A1A1A;
+  --theme-primary: #0D5C7A;
+  --theme-secondary: #1280A8;
+  --theme-background: #F4F3EF;
+  --theme-background-secondary: #E8F5F8;
+  --theme-foreground: #061F2A;
   --theme-card: #FFFFFF;
-  --theme-card-foreground: #1A1A1A;
-  --theme-border: rgba(0, 0, 0, 0.1);
-  --theme-muted: #D1FAE5;
-  --theme-muted-foreground: #6B7280;
-  --theme-accent: #059669;
+  --theme-card-foreground: #061F2A;
+  --theme-border: #EDEAE4;
+  --theme-muted: #C8E8EF;
+  --theme-muted-foreground: #7A7068;
+  --theme-accent: #0D5C7A;
   --theme-accent-foreground: #FFFFFF;
-  --theme-glow: rgba(5, 150, 105, 0);
-  --theme-hover: rgba(5, 150, 105, 0.08);
+  --theme-glow: rgba(13, 92, 122, 0.2);
+  --theme-hover: rgba(13, 92, 122, 0.08);
+  --theme-hint: #B0A8A0;
+  --theme-text-body: #1A1410;
 }
 
 /* Glow effects para FIAP */

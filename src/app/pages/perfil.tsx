@@ -96,10 +96,10 @@ export function Perfil() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card className="border-l-4 border-l-orange-500">
+        <Card className="border-l-4 border-l-[#0D5C7A]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Briefcase className="h-5 w-5 text-orange-500" />
+              <Briefcase className="h-5 w-5 text-[#0D5C7A]" />
               Workspace de trabalho
             </CardTitle>
           </CardHeader>

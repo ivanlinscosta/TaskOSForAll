@@ -199,7 +199,7 @@ export function Custos() {
           : custosService.CATEGORIAS_LABELS[cat as custosService.CategoriaCusto] || cat,
         value: valor,
         fill: cat === 'viagem'
-          ? '#059669'
+          ? '#0D5C7A'
           : custosService.CATEGORIAS_CORES[cat as custosService.CategoriaCusto] || '#6B7280',
       }));
   }, [custos, viagens]);
@@ -347,7 +347,7 @@ export function Custos() {
           <p className="text-[var(--theme-muted-foreground)] mt-1">{ANO_ATUAL} · Visão completa de receitas e despesas</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setDialogReceita(true)} className="gap-2" style={{ background: '#059669', color: '#fff' }}>
+          <Button onClick={() => setDialogReceita(true)} className="gap-2" style={{ background: '#0D5C7A', color: '#fff' }}>
             <ArrowUpCircle className="h-4 w-4" /> Receita
           </Button>
           <Button onClick={() => setDialogDespesa(true)} className="gap-2" style={{ background: '#EF4444', color: '#fff' }}>
@@ -359,9 +359,9 @@ export function Custos() {
       {/* ── Métricas do Ano ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Receitas no Ano', valor: totalReceitasAno, cor: '#059669', icon: TrendingUp },
+          { label: 'Receitas no Ano', valor: totalReceitasAno, cor: '#0D5C7A', icon: TrendingUp },
           { label: 'Despesas no Ano', valor: totalDespesasAno, cor: '#EF4444', icon: TrendingDown },
-          { label: 'Saldo do Ano', valor: saldoAno, cor: saldoAno >= 0 ? '#059669' : '#EF4444', icon: Wallet },
+          { label: 'Saldo do Ano', valor: saldoAno, cor: saldoAno >= 0 ? '#0D5C7A' : '#EF4444', icon: Wallet },
           { label: 'Gastos com Viagens', valor: viagensMes.reduce((s, v) => s + v, 0), cor: '#6366F1', icon: Plane },
         ].map(({ label, valor, cor, icon: Icon }) => (
           <Card key={label}>
@@ -435,7 +435,7 @@ export function Custos() {
                     tickFormatter={(v) => formatCurrency(v)} />
                   <Tooltip content={<TooltipBRL />} />
                   <Legend />
-                  <Bar dataKey="Receitas" fill="#059669" radius={[4,4,0,0]} />
+                  <Bar dataKey="Receitas" fill="#0D5C7A" radius={[4,4,0,0]} />
                   <Bar dataKey="Despesas" fill="#EF4444" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -679,7 +679,7 @@ export function Custos() {
             <div className="text-center py-12">
               <TrendingUp className="h-12 w-12 mx-auto text-[var(--theme-muted-foreground)] mb-3" />
               <p className="text-[var(--theme-muted-foreground)]">Nenhuma receita registrada</p>
-              <Button className="mt-4 gap-2" style={{ background: '#059669', color: '#fff' }} onClick={() => setDialogReceita(true)}>
+              <Button className="mt-4 gap-2" style={{ background: '#0D5C7A', color: '#fff' }} onClick={() => setDialogReceita(true)}>
                 <Plus className="h-4 w-4" /> Registrar Receita
               </Button>
             </div>
@@ -811,7 +811,7 @@ export function Custos() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogReceita(false)}>Cancelar</Button>
-            <Button onClick={handleSaveReceita} style={{ background: '#059669', color: '#fff' }}>Salvar</Button>
+            <Button onClick={handleSaveReceita} style={{ background: '#0D5C7A', color: '#fff' }}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -903,7 +903,7 @@ export function Custos() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditandoReceita(null)}>Cancelar</Button>
-            <Button onClick={handleUpdateReceita} style={{ background: '#059669', color: '#fff' }}>Salvar Alterações</Button>
+            <Button onClick={handleUpdateReceita} style={{ background: '#0D5C7A', color: '#fff' }}>Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

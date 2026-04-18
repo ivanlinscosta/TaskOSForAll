@@ -31,7 +31,7 @@ type Status = 'backlog' | 'doing' | 'done';
 const COLUNAS: { status: Status; label: string; icon: React.ElementType; cor: string }[] = [
   { status: 'backlog', label: 'A Fazer', icon: Circle, cor: '#6B7280' },
   { status: 'doing', label: 'Em Progresso', icon: Clock, cor: '#F59E0B' },
-  { status: 'done', label: 'Concluído', icon: CheckSquare, cor: '#059669' },
+  { status: 'done', label: 'Concluído', icon: CheckSquare, cor: '#0D5C7A' },
 ];
 
 const PRIORIDADE_COR: Record<string, string> = {
