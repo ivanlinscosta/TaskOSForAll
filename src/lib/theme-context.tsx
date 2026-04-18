@@ -11,14 +11,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('dualos-theme');
-    return (saved as ThemeMode) || 'fiap';
+    // Reset any legacy itau/fiap theme — TaskAll only uses pessoal
+    if (!saved || saved === 'fiap' || saved === 'itau') return 'pessoal';
+    return saved as ThemeMode;
   });
 
   useEffect(() => {
-    // Remove ambas as classes primeiro
-    document.body.classList.remove('theme-itau', 'theme-fiap');
-    
-    // Adiciona a classe do tema atual
+    document.body.classList.remove('theme-itau', 'theme-fiap', 'theme-pessoal');
     document.body.classList.add(`theme-${theme}`);
     
     // Salva no localStorage
