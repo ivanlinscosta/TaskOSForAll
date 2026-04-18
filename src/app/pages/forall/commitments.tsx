@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { addDays, format, isSameDay, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,7 +18,7 @@ type EventItem = {
   title: string;
   description?: string;
   date: Date;
-  type: 'reuniao' | 'tarefa' | 'viagem' | 'google';
+  type: 'reuniao' | 'tarefa' | 'viagem' | 'google' | 'apple';
 };
 
 const TYPE_META: Record<EventItem['type'], { label: string; badgeClass: string; cardClass: string }> = {
@@ -42,7 +42,40 @@ const TYPE_META: Record<EventItem['type'], { label: string; badgeClass: string; 
     badgeClass: 'bg-emerald-100 text-emerald-700',
     cardClass: 'border-emerald-200 bg-emerald-500 text-white',
   },
+  apple: {
+    label: 'Apple',
+    badgeClass: 'bg-gray-100 text-gray-700',
+    cardClass: 'border-gray-200 bg-gray-700 text-white',
+  },
 };
+
+function parseICS(text: string): EventItem[] {
+  const events: EventItem[] = [];
+  const blocks = text.split('BEGIN:VEVENT');
+  blocks.slice(1).forEach((block, i) => {
+    const get = (key: string) => {
+      const match = block.match(new RegExp(`${key}[^:]*:([^\r\n]+)`));
+      return match ? match[1].trim() : '';
+    };
+    const parseICSDate = (raw: string): Date | null => {
+      const clean = raw.replace(/[TZ]/g, '');
+      if (clean.length >= 8) {
+        const y = +clean.slice(0, 4), mo = +clean.slice(4, 6) - 1, d = +clean.slice(6, 8);
+        const h = +clean.slice(8, 10) || 0, min = +clean.slice(10, 12) || 0;
+        const dt = new Date(y, mo, d, h, min);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+      return null;
+    };
+    const title = get('SUMMARY').replace(/\\n/g, ' ').replace(/\\,/g, ',') || 'Evento Apple';
+    const description = get('DESCRIPTION').replace(/\\n/g, ' ').replace(/\\,/g, ',');
+    const date = parseICSDate(get('DTSTART'));
+    if (date) {
+      events.push({ id: `apple-${i}-${Date.now()}`, title, description: description || undefined, date, type: 'apple' });
+    }
+  });
+  return events;
+}
 
 function tryParseDate(value: any) {
   if (!value) return null;
@@ -65,6 +98,8 @@ export function ForAllCommitmentsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [gcalConnected, setGcalConnected] = useState(gcalService.isCalendarConnected());
   const [gcalLoading, setGcalLoading] = useState(false);
+  const [appleImported, setAppleImported] = useState(false);
+  const appleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void loadEvents();
@@ -219,41 +254,26 @@ export function ForAllCommitmentsPage() {
     }
   };
 
-  const handleExportAppleCalendar = () => {
-    const fmt = (d: Date) =>
-      d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-
-    const lines = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//TaskOS For All//PT',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-    ];
-
-    events.forEach((ev) => {
-      const start = fmt(ev.date);
-      const end = fmt(new Date(ev.date.getTime() + 60 * 60 * 1000));
-      lines.push('BEGIN:VEVENT');
-      lines.push(`UID:${ev.id}@taskos`);
-      lines.push(`DTSTAMP:${fmt(new Date())}`);
-      lines.push(`DTSTART:${start}`);
-      lines.push(`DTEND:${end}`);
-      lines.push(`SUMMARY:${ev.title.replace(/\n/g, '\\n')}`);
-      if (ev.description) lines.push(`DESCRIPTION:${ev.description.replace(/\n/g, '\\n')}`);
-      lines.push('END:VEVENT');
-    });
-
-    lines.push('END:VCALENDAR');
-
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'taskos-compromissos.ics';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Arquivo .ics gerado! Abra-o no Apple Calendar para importar.');
+  const handleAppleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const imported = parseICS(text);
+      if (imported.length === 0) {
+        toast.error('Nenhum evento encontrado no arquivo .ics.');
+        return;
+      }
+      setEvents((prev) => {
+        const withoutOldApple = prev.filter((ev) => ev.type !== 'apple');
+        return [...withoutOldApple, ...imported];
+      });
+      setAppleImported(true);
+      toast.success(`${imported.length} evento(s) importado(s) do Apple Calendar.`);
+    } catch {
+      toast.error('Erro ao ler o arquivo. Verifique se é um .ics válido.');
+    }
   };
 
   const weekStart = startOfWeek(weekAnchor, { weekStartsOn: 1 });
@@ -305,25 +325,33 @@ export function ForAllCommitmentsPage() {
                 {gcalLoading ? 'Conectando...' : 'Google'}
               </button>
             )}
-            <button
-              onClick={handleExportAppleCalendar}
-              title="Exportar para Apple Calendar (.ics)"
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:hover:bg-zinc-700"
-            >
-              {/* Apple Calendar icon */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="4" width="20" height="18" rx="3" fill="white" stroke="#E0E0E0"/>
-                <rect x="2" y="4" width="20" height="5" rx="3" fill="#FF3B30"/>
-                <rect x="2" y="7" width="20" height="2" fill="#FF3B30"/>
-                <text x="12" y="9.5" textAnchor="middle" fontSize="4.5" fontWeight="700" fill="white">
-                  {new Date().toLocaleString('pt-BR',{month:'short'}).toUpperCase()}
-                </text>
-                <text x="12" y="18" textAnchor="middle" fontSize="8" fontWeight="700" fill="#1C1C1E">
-                  {new Date().getDate()}
-                </text>
-              </svg>
-              Apple
-            </button>
+            {appleImported ? (
+              <Badge className="bg-gray-100 text-gray-700 gap-1 text-xs px-2 py-0.5">
+                <CalendarDays className="h-3 w-3" /> Apple importado
+              </Badge>
+            ) : (
+              <button
+                onClick={() => appleInputRef.current?.click()}
+                title="Importar .ics do Apple Calendar"
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:hover:bg-zinc-700"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="4" width="20" height="18" rx="3" fill="white" stroke="#E0E0E0"/>
+                  <rect x="2" y="4" width="20" height="6" rx="3" fill="#FF3B30"/>
+                  <rect x="2" y="8" width="20" height="2" fill="#FF3B30"/>
+                  <text x="12" y="10" textAnchor="middle" fontSize="4" fontWeight="700" fill="white">APR</text>
+                  <text x="12" y="19" textAnchor="middle" fontSize="8" fontWeight="700" fill="#1C1C1E">18</text>
+                </svg>
+                Apple
+              </button>
+            )}
+            <input
+              ref={appleInputRef}
+              type="file"
+              accept=".ics"
+              className="hidden"
+              onChange={handleAppleFileChange}
+            />
           </div>
 
           <Button variant="outline" className="gap-2" onClick={() => navigate(`/chat?workspace=${workspace}`)}>
@@ -342,6 +370,7 @@ export function ForAllCommitmentsPage() {
         <Badge className={TYPE_META.tarefa.badgeClass}>Prazos</Badge>
         <Badge className={TYPE_META.viagem.badgeClass}>Viagens</Badge>
         {gcalConnected && <Badge className={TYPE_META.google.badgeClass}>Google Calendar</Badge>}
+        {appleImported && <Badge className={TYPE_META.apple.badgeClass}>Apple Calendar</Badge>}
       </div>
 
       <Card className="overflow-hidden rounded-[28px]">
