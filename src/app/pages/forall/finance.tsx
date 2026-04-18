@@ -368,17 +368,24 @@ export function ForAllFinancePage() {
         const year = baseDate.getFullYear();
         const day = baseDate.getDate();
         const newItems: any[] = [];
+        const newCustos: any[] = [];
 
         for (let m = startMonth; m < 12; m++) {
           const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
           const dateStr = d.toISOString().split('T')[0];
           const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: dateStr });
           newItems.push({ id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, categoria: categoriaFinal, valor, data: dateStr });
+          newCustos.push({ id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: dateStr, origem: 'manual' });
         }
+        setCustos((prev) => [...newCustos, ...prev]);
         setExpenses((prev) => [...newItems, ...prev]);
         toast.success(`Despesa ${expenseForm.tipoGasto === 'fixo' ? 'fixa' : 'assinatura'} replicada para ${newItems.length} meses!`);
       } else {
         const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: expenseForm.data });
+        setCustos((prev) => [
+          { id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: expenseForm.data, origem: 'manual' },
+          ...prev,
+        ]);
         setExpenses((prev) => [
           { id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, categoria: categoriaFinal, valor },
           ...prev,
@@ -533,7 +540,9 @@ export function ForAllFinancePage() {
       descricao: c.descricao,
       valor: Number(c.valor || 0),
       categoria: c.categoria,
-      tipoGasto: c.tipo === 'fixa' ? 'fixo' : c.tipo, // 'fixa' → 'fixo' | 'variavel' | 'assinatura'
+      // Prefere tipoGasto (campo das despesas criadas manualmente via dialog).
+      // Fallback para tipo mapeado (campo das faturas/extratos importados: 'fixa' → 'fixo').
+      tipoGasto: c.tipoGasto || (c.tipo === 'fixa' ? 'fixo' : c.tipo),
       data: c.data,
       origem: c.origem,
       nomeCartao: c.nomeCartao,
