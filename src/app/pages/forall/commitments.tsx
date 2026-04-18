@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { addDays, format, isSameDay, startOfWeek } from 'date-fns';
+import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, getDay, isSameDay, isSameMonth, startOfMonth, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -127,6 +127,8 @@ export function ForAllCommitmentsPage() {
   const [gcalLoading, setGcalLoading] = useState(false);
   const [appleImported, setAppleImported] = useState(false);
   const appleInputRef = useRef<HTMLInputElement>(null);
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+  const [monthAnchor, setMonthAnchor] = useState(new Date());
 
   useEffect(() => {
     void loadEvents();
@@ -314,6 +316,14 @@ export function ForAllCommitmentsPage() {
 
   const weekStart = startOfWeek(weekAnchor, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+
+  // Monthly grid: pad to full weeks (Mon–Sun)
+  const monthStart = startOfMonth(monthAnchor);
+  const monthEnd = endOfMonth(monthAnchor);
+  const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const totalCells = 42; // 6 rows × 7 cols
+  const monthGridDays = Array.from({ length: totalCells }, (_, i) => addDays(gridStart, i));
+
   const selectedEvents = events.filter((event) => isSameDay(event.date, selectedDate));
   const workspaceLabel = workspace === 'work' ? 'Trabalho' : 'Vida pessoal';
 
@@ -412,18 +422,36 @@ export function ForAllCommitmentsPage() {
 
       <Card className="overflow-hidden rounded-[28px]">
         <CardHeader className="border-b border-[var(--theme-border)] bg-[var(--theme-background-secondary)]">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <CardTitle className="text-2xl">
-              Semana de {format(weekStart, "d 'de' MMM", { locale: ptBR })} até {format(addDays(weekStart, 6), "d 'de' MMM", { locale: ptBR })}
+              {viewMode === 'week'
+                ? `Semana de ${format(weekStart, "d 'de' MMM", { locale: ptBR })} até ${format(addDays(weekStart, 6), "d 'de' MMM", { locale: ptBR })}`
+                : format(monthAnchor, "MMMM 'de' yyyy", { locale: ptBR }).replace(/^\w/, c => c.toUpperCase())}
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* View toggle */}
+              <div className="flex rounded-lg border border-[var(--theme-border)] overflow-hidden text-sm">
+                <button
+                  onClick={() => setViewMode('week')}
+                  className={`px-3 py-1.5 transition ${viewMode === 'week' ? 'bg-[var(--theme-accent)] text-white font-semibold' : 'bg-[var(--theme-background)] text-[var(--theme-muted-foreground)] hover:bg-[var(--theme-background-secondary)]'}`}
+                >
+                  Semana
+                </button>
+                <button
+                  onClick={() => setViewMode('month')}
+                  className={`px-3 py-1.5 transition ${viewMode === 'month' ? 'bg-[var(--theme-accent)] text-white font-semibold' : 'bg-[var(--theme-background)] text-[var(--theme-muted-foreground)] hover:bg-[var(--theme-background-secondary)]'}`}
+                >
+                  Mês
+                </button>
+              </div>
+              {/* Navigation */}
+              <Button variant="outline" size="icon" onClick={() => viewMode === 'week' ? setWeekAnchor(addDays(weekAnchor, -7)) : setMonthAnchor(addMonths(monthAnchor, -1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" onClick={() => { setWeekAnchor(new Date()); setSelectedDate(new Date()); }}>
+              <Button variant="outline" onClick={() => { setWeekAnchor(new Date()); setMonthAnchor(new Date()); setSelectedDate(new Date()); }}>
                 Hoje
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}>
+              <Button variant="outline" size="icon" onClick={() => viewMode === 'week' ? setWeekAnchor(addDays(weekAnchor, 7)) : setMonthAnchor(addMonths(monthAnchor, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -431,45 +459,94 @@ export function ForAllCommitmentsPage() {
         </CardHeader>
 
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-7">
-            {weekDays.map((day) => {
-              const dayEvents = events.filter((event) => isSameDay(event.date, day));
-              return (
-                <div
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={`min-h-[260px] cursor-pointer rounded-2xl border p-3 transition ${
-                    isSameDay(day, selectedDate)
-                      ? 'border-[var(--theme-accent)] bg-[var(--theme-background-secondary)]'
-                      : 'border-[var(--theme-border)] bg-[var(--theme-background)]'
-                  }`}
-                >
-                  <div className="mb-3 border-b border-[var(--theme-border)] pb-2">
-                    <p className="text-xs uppercase text-[var(--theme-muted-foreground)]">{format(day, 'EEEEEE', { locale: ptBR })}</p>
-                    <p className="text-3xl font-bold text-[var(--theme-foreground)]">{format(day, 'd')}</p>
+          {viewMode === 'week' ? (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-7">
+              {weekDays.map((day) => {
+                const dayEvents = events.filter((event) => isSameDay(event.date, day));
+                return (
+                  <div
+                    key={day.toISOString()}
+                    onClick={() => setSelectedDate(day)}
+                    className={`min-h-[260px] cursor-pointer rounded-2xl border p-3 transition ${
+                      isSameDay(day, selectedDate)
+                        ? 'border-[var(--theme-accent)] bg-[var(--theme-background-secondary)]'
+                        : 'border-[var(--theme-border)] bg-[var(--theme-background)]'
+                    }`}
+                  >
+                    <div className="mb-3 border-b border-[var(--theme-border)] pb-2">
+                      <p className="text-xs uppercase text-[var(--theme-muted-foreground)]">{format(day, 'EEEEEE', { locale: ptBR })}</p>
+                      <p className="text-3xl font-bold text-[var(--theme-foreground)]">{format(day, 'd')}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {dayEvents.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-[var(--theme-border)] px-3 py-8 text-center text-xs text-[var(--theme-muted-foreground)]">
+                          Sem eventos
+                        </div>
+                      ) : (
+                        dayEvents.map((event) => {
+                          const meta = TYPE_META[event.type];
+                          return (
+                            <div key={event.id} className={`rounded-xl border p-2 text-xs shadow-sm ${meta.cardClass}`}>
+                              <div className="font-semibold">{event.title}</div>
+                              <div className="mt-1 opacity-90">{meta.label}</div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    {dayEvents.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] px-3 py-8 text-center text-xs text-[var(--theme-muted-foreground)]">
-                        Sem eventos
+                );
+              })}
+            </div>
+          ) : (
+            /* Monthly view */
+            <div>
+              {/* Weekday headers */}
+              <div className="grid grid-cols-7 mb-2">
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((d) => (
+                  <div key={d} className="py-2 text-center text-xs font-semibold uppercase text-[var(--theme-muted-foreground)]">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {monthGridDays.map((day) => {
+                  const dayEvents = events.filter((event) => isSameDay(event.date, day));
+                  const isCurrentMonth = isSameMonth(day, monthAnchor);
+                  const isToday = isSameDay(day, new Date());
+                  const isSelected = isSameDay(day, selectedDate);
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      onClick={() => setSelectedDate(day)}
+                      className={`min-h-[80px] cursor-pointer rounded-xl border p-1.5 transition ${
+                        isSelected
+                          ? 'border-[var(--theme-accent)] bg-[var(--theme-background-secondary)]'
+                          : 'border-[var(--theme-border)] bg-[var(--theme-background)] hover:bg-[var(--theme-background-secondary)]'
+                      } ${!isCurrentMonth ? 'opacity-40' : ''}`}
+                    >
+                      <p className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                        isToday ? 'bg-[var(--theme-accent)] text-white' : 'text-[var(--theme-foreground)]'
+                      }`}>
+                        {format(day, 'd')}
+                      </p>
+                      <div className="space-y-0.5">
+                        {dayEvents.slice(0, 3).map((event) => {
+                          const meta = TYPE_META[event.type];
+                          return (
+                            <div key={event.id} className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${meta.cardClass}`}>
+                              {event.title}
+                            </div>
+                          );
+                        })}
+                        {dayEvents.length > 3 && (
+                          <div className="px-1 text-[10px] text-[var(--theme-muted-foreground)]">+{dayEvents.length - 3} mais</div>
+                        )}
                       </div>
-                    ) : (
-                      dayEvents.map((event) => {
-                        const meta = TYPE_META[event.type];
-                        return (
-                          <div key={event.id} className={`rounded-xl border p-2 text-xs shadow-sm ${meta.cardClass}`}>
-                            <div className="font-semibold">{event.title}</div>
-                            <div className="mt-1 opacity-90">{meta.label}</div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
