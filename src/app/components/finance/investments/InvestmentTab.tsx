@@ -22,6 +22,7 @@ import {
   Lightbulb,
   Loader2,
   Minus,
+  Pencil,
   PiggyBank,
   Plus,
   RefreshCw,
@@ -237,6 +238,7 @@ function InvestmentCard({
   projection,
   aiProjection,
   onDelete,
+  onEdit,
   onAnalyze,
   expanded,
   onToggle,
@@ -245,6 +247,7 @@ function InvestmentCard({
   projection?: InvestmentProjection;
   aiProjection?: AIProjectionState;
   onDelete: (id: string) => void;
+  onEdit: (inv: UserInvestment) => void;
   onAnalyze: () => void;
   expanded: boolean;
   onToggle: () => void;
@@ -299,8 +302,16 @@ function InvestmentCard({
 
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
+              onClick={(e) => { e.stopPropagation(); onEdit(investment); }}
+              className="rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-[var(--theme-accent)] hover:bg-[var(--theme-accent)]/10 transition-colors"
+              title="Editar investimento"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
               onClick={(e) => { e.stopPropagation(); onDelete(investment.id!); }}
               className="rounded-lg p-1.5 text-[var(--theme-muted-foreground)] hover:text-red-500 hover:bg-red-50 transition-colors"
+              title="Excluir investimento"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -499,15 +510,44 @@ function InvestmentFormModal({
   open,
   onClose,
   onSave,
+  onUpdate,
   ownerId,
+  initialValues,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (inv: UserInvestment) => void;
+  onUpdate: (inv: UserInvestment) => void;
   ownerId: string;
+  initialValues?: UserInvestment;
 }) {
+  const isEditing = !!initialValues?.id;
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm(initialValues
+        ? {
+            name: initialValues.name,
+            type: initialValues.type,
+            institution: initialValues.institution,
+            investedAmount: initialValues.investedAmount,
+            currentAmount: initialValues.currentAmount,
+            benchmarkType: initialValues.benchmarkType,
+            benchmarkPercent: initialValues.benchmarkPercent,
+            fixedRateAnnual: initialValues.fixedRateAnnual,
+            startDate: initialValues.startDate,
+            maturityDate: initialValues.maturityDate,
+            liquidity: initialValues.liquidity,
+            ticker: initialValues.ticker ?? '',
+            currency: initialValues.currency,
+            notes: initialValues.notes ?? '',
+          }
+        : EMPTY_FORM
+      );
+    }
+  }, [open, initialValues]);
 
   const isVariable = VARIABLE_TYPES.has(form.type as InvestmentType);
   const needsRate = form.benchmarkType === 'Prefixado' || form.benchmarkType === 'Personalizado' || form.benchmarkType === 'IPCA';
@@ -522,7 +562,7 @@ function InvestmentFormModal({
     if (!ownerId) { toast.error('Usuário não autenticado'); return; }
     try {
       setSaving(true);
-      const inv: Omit<UserInvestment, 'id' | 'createdAt' | 'updatedAt'> = {
+      const fields: Omit<UserInvestment, 'id' | 'createdAt' | 'updatedAt'> = {
         ...form,
         ownerId,
         investedAmount: rawAmount,
@@ -533,11 +573,16 @@ function InvestmentFormModal({
         maturityDate: form.maturityDate || undefined,
         notes: form.notes || undefined,
       };
-      const id = await createInvestment(inv);
-      onSave({ ...inv, id, createdAt: new Date(), updatedAt: new Date() });
-      setForm(EMPTY_FORM);
+      if (isEditing && initialValues?.id) {
+        await updateInvestment(initialValues.id, fields);
+        onUpdate({ ...initialValues, ...fields, updatedAt: new Date() });
+        toast.success('Investimento atualizado!');
+      } else {
+        const id = await createInvestment(fields);
+        onSave({ ...fields, id, createdAt: new Date(), updatedAt: new Date() });
+        toast.success('Investimento cadastrado!');
+      }
       onClose();
-      toast.success('Investimento cadastrado!');
     } catch (err: any) {
       console.error('Erro ao salvar investimento:', err);
       const msg = err?.code === 'permission-denied'
@@ -554,8 +599,8 @@ function InvestmentFormModal({
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <PiggyBank className="h-5 w-5 text-[var(--theme-accent)]" />
-            Cadastrar investimento
+            {isEditing ? <Pencil className="h-5 w-5 text-[var(--theme-accent)]" /> : <PiggyBank className="h-5 w-5 text-[var(--theme-accent)]" />}
+            {isEditing ? 'Editar investimento' : 'Cadastrar investimento'}
           </DialogTitle>
           <DialogDescription className="sr-only">
             Formulário para cadastrar um novo investimento na carteira
@@ -730,8 +775,8 @@ function InvestmentFormModal({
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            {saving ? 'Salvando…' : 'Cadastrar'}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditing ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {saving ? 'Salvando…' : isEditing ? 'Salvar alterações' : 'Cadastrar'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -860,6 +905,7 @@ export function InvestmentTab() {
   const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<UserInvestment | null>(null);
 
   // AI portfolio insights
   const [aiInsights, setAiInsights] = useState<InvestmentAIInsight | null>(null);
@@ -986,6 +1032,11 @@ export function InvestmentTab() {
 
   const handleSaved = useCallback((inv: UserInvestment) => {
     setInvestments((prev) => [inv, ...prev]);
+  }, []);
+
+  const handleUpdated = useCallback((inv: UserInvestment) => {
+    setInvestments((prev) => prev.map((i) => i.id === inv.id ? inv : i));
+    setEditTarget(null);
   }, []);
 
   const handleAnalyzeProjection = useCallback(async (investment: UserInvestment) => {
@@ -1368,6 +1419,7 @@ export function InvestmentTab() {
                   projection={projectionMap.get(inv.id!)}
                   aiProjection={aiProjections[inv.id!]}
                   onDelete={handleDelete}
+                  onEdit={setEditTarget}
                   onAnalyze={() => handleAnalyzeProjection(inv)}
                   expanded={expandedId === inv.id}
                   onToggle={() => setExpandedId((prev) => (prev === inv.id ? null : inv.id!))}
@@ -1392,7 +1444,18 @@ export function InvestmentTab() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSave={handleSaved}
+        onUpdate={handleUpdated}
         ownerId={user?.uid ?? ''}
+      />
+
+      {/* ── Modal: Edit investment ── */}
+      <InvestmentFormModal
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSaved}
+        onUpdate={handleUpdated}
+        ownerId={user?.uid ?? ''}
+        initialValues={editTarget ?? undefined}
       />
     </div>
   );
