@@ -262,7 +262,8 @@ export function ForAllTasksBoard() {
                       draggable
                       onDragStart={() => setDragging(task.id || null)}
                       onDragEnd={() => setDragging(null)}
-                      className="cursor-grab rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] p-4 shadow-sm transition-all hover:shadow-md"
+                      className="cursor-grab rounded-2xl bg-[var(--theme-card)] p-4 shadow-sm transition-all hover:shadow-md"
+                      style={{ border: '0.75px solid #EDEAE4' }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>

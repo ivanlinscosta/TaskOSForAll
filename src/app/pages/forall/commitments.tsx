@@ -565,7 +565,7 @@ export function ForAllCommitmentsPage() {
             selectedEvents.map((event) => {
               const meta = TYPE_META[event.type];
               return (
-                <div key={event.id} className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-background)] p-4">
+                <div key={event.id} className="rounded-2xl bg-[var(--theme-card)] p-4 shadow-sm" style={{ border: '0.75px solid #EDEAE4' }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge className={meta.badgeClass}>{meta.label}</Badge>
                     <Badge variant="outline" className="gap-1">
