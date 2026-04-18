@@ -70,6 +70,16 @@ function monthKey(value: any): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/**
+ * Converte string 'YYYY-MM-DD' em Date de meia-noite LOCAL.
+ * Evita o bug do `new Date('YYYY-MM-DD')` que interpreta como UTC
+ * e no fuso UTC-3 resulta no dia anterior.
+ */
+function parseDateLocal(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** 'YYYY-MM' → rótulo legível em pt-BR (ex: 'mar/25'). */
 function monthLabelFromKey(key: string): string {
   const [y, m] = key.split('-').map(Number);
@@ -321,7 +331,7 @@ export function ForAllFinancePage() {
           valor,
           categoria: categoriaFinal as any,
           tipo: expenseForm.tipoGasto as any,
-          data: new Date(expenseForm.data),
+          data: parseDateLocal(expenseForm.data),
         });
         setCustos(prev => prev.map(c => c.id === editingExpenseId
           ? { ...c, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipo: expenseForm.tipoGasto, data: expenseForm.data }
@@ -373,17 +383,18 @@ export function ForAllFinancePage() {
         for (let m = startMonth; m < 12; m++) {
           const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
           const dateStr = d.toISOString().split('T')[0];
-          const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: dateStr });
+          const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: d }); // Date local, não string
           newItems.push({ id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, categoria: categoriaFinal, valor, data: dateStr });
-          newCustos.push({ id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: dateStr, origem: 'manual' });
+          newCustos.push({ id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: d, origem: 'manual' });
         }
         setCustos((prev) => [...newCustos, ...prev]);
         setExpenses((prev) => [...newItems, ...prev]);
         toast.success(`Despesa ${expenseForm.tipoGasto === 'fixo' ? 'fixa' : 'assinatura'} replicada para ${newItems.length} meses!`);
       } else {
-        const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: expenseForm.data });
+        const dataLocal = parseDateLocal(expenseForm.data);
+        const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: dataLocal }); // Date local, não string
         setCustos((prev) => [
-          { id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: expenseForm.data, origem: 'manual' },
+          { id, descricao: expenseForm.descricao, valor, categoria: categoriaFinal, tipoGasto: expenseForm.tipoGasto, tipo: expenseForm.tipoGasto, data: dataLocal, origem: 'manual' },
           ...prev,
         ]);
         setExpenses((prev) => [
@@ -427,7 +438,7 @@ export function ForAllFinancePage() {
           descricao: revenueForm.descricao,
           valor,
           categoria: revenueForm.categoria as any,
-          data: new Date(revenueForm.data),
+          data: parseDateLocal(revenueForm.data),
           recorrente: revenueForm.recorrente,
         });
         setRevenues(prev => prev.map(r => r.id === editingRevenueId
@@ -463,7 +474,7 @@ export function ForAllFinancePage() {
 
       if (revenueForm.recorrente) {
         // Replicar para todos os meses restantes do ano
-        const baseDate = new Date(revenueForm.data);
+        const baseDate = parseDateLocal(revenueForm.data);
         const startMonth = baseDate.getMonth();
         const year = baseDate.getFullYear();
         const day = baseDate.getDate();
@@ -472,13 +483,14 @@ export function ForAllFinancePage() {
         for (let m = startMonth; m < 12; m++) {
           const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
           const dateStr = d.toISOString().split('T')[0];
-          const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: dateStr });
+          const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: d }); // Date local
           newItems.push({ id, collectionName: COLLECTIONS.RECEITAS, ...revenueForm, valor, data: dateStr });
         }
         setRevenues((prev) => [...newItems, ...prev]);
         toast.success(`Receita recorrente criada para ${newItems.length} meses!`);
       } else {
-        const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: revenueForm.data });
+        const dataLocal = parseDateLocal(revenueForm.data);
+        const id = await createOwnedRecord(COLLECTIONS.RECEITAS, { ...baseRecord, data: dataLocal }); // Date local
         setRevenues((prev) => [
           { id, collectionName: COLLECTIONS.RECEITAS, ...revenueForm, valor },
           ...prev,

@@ -39,13 +39,24 @@ export interface Receita {
 
 const COLLECTION_NAME = 'receitas';
 
+/** Converte campo de data do Firestore em Date local, sem bug de fuso horário. */
+function parseFirestoreDate(raw: any): Date {
+  if (raw?.toDate) return raw.toDate();
+  if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [y, m, d] = raw.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  if (raw instanceof Date) return raw;
+  return new Date();
+}
+
 function docToReceita(id: string, data: any): Receita {
   return {
     id,
     descricao: data.descricao || '',
     valor: data.valor || 0,
     categoria: data.categoria || 'outros',
-    data: data.data?.toDate?.() || new Date(),
+    data: parseFirestoreDate(data.data),
     recorrente: data.recorrente ?? false,
     notas: data.notas || '',
     criadoEm: data.criadoEm?.toDate?.() || new Date(),

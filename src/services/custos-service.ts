@@ -46,6 +46,20 @@ export interface Custo {
   nomeCartao?: string;
 }
 
+/** Converte um campo de data do Firestore em Date local, sem bug de fuso horário. */
+function parseFirestoreDate(raw: any): Date {
+  // Firestore Timestamp → usa .toDate() que retorna Date no fuso local
+  if (raw?.toDate) return raw.toDate();
+  // String 'YYYY-MM-DD' armazenada via createOwnedRecord (sem conversão de Timestamp)
+  if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [y, m, d] = raw.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d); // meia-noite local, sem offset UTC
+  }
+  // Date JS nativo
+  if (raw instanceof Date) return raw;
+  return new Date();
+}
+
 function docToCusto(id: string, data: any): Custo {
   return {
     id,
@@ -53,7 +67,7 @@ function docToCusto(id: string, data: any): Custo {
     valor: data.valor || 0,
     categoria: data.categoria || 'outros',
     tipo: data.tipo || 'variavel',
-    data: data.data?.toDate?.() || new Date(),
+    data: parseFirestoreDate(data.data),
     viagemId: data.viagemId || '',
     comprovante: data.comprovante || '',
     notas: data.notas || '',
