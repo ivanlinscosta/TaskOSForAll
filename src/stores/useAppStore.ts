@@ -40,6 +40,8 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'taskos-forall-storage',
+      version: 2,
+      migrate: (state) => ({ ...(state as object), sidebarCollapsed: false }),
     },
   ),
 );
