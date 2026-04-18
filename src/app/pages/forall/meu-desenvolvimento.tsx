@@ -489,7 +489,7 @@ export function MeuDesenvolvimentoPage() {
       {highlights.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-[var(--theme-foreground)] flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500" /> Insights personalizados
+            <Lightbulb className="h-4 w-4 text-[#0D5C7A]" /> Insights personalizados
           </h2>
           <HighlightBanner highlights={highlights} />
         </div>
@@ -539,7 +539,7 @@ export function MeuDesenvolvimentoPage() {
       {activeChallenges.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-base font-semibold text-[var(--theme-foreground)] flex items-center gap-2">
-            <Target className="h-4 w-4 text-amber-500" /> Desafios Ativos
+            <Target className="h-4 w-4 text-[#0D5C7A]" /> Desafios Ativos
             <Badge className="text-xs" style={{ background: '#F59E0B15', color: '#F59E0B', border: 'none' }}>
               {activeChallenges.length}
             </Badge>
@@ -637,7 +637,7 @@ export function MeuDesenvolvimentoPage() {
           <CardHeader>
             <button className="flex w-full items-center justify-between text-left" onClick={() => setShowBadges((s) => !s)}>
               <CardTitle className="flex items-center gap-2 text-sm">
-                <Trophy className="h-4 w-4 text-amber-500" /> Conquistas
+                <Trophy className="h-4 w-4 text-[#0D5C7A]" /> Conquistas
                 <Badge className="text-xs" style={{ background: '#F59E0B15', color: '#F59E0B', border: 'none' }}>
                   {profile.earnedBadges.length} / 11
                 </Badge>

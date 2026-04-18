@@ -653,13 +653,13 @@ export function CarreiraPage() {
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-amber-500" /> Pontos a Desenvolver
+                      <XCircle className="h-4 w-4 text-[#0D5C7A]" /> Pontos a Desenvolver
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {resultado.pontos_melhorar.map((p, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm">
-                        <TrendingUp className="h-3.5 w-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <TrendingUp className="h-3.5 w-3.5 text-[#0D5C7A] flex-shrink-0 mt-0.5" />
                         <span className="text-[var(--theme-foreground)]">{p}</span>
                       </div>
                     ))}
@@ -710,7 +710,7 @@ export function CarreiraPage() {
                 <CardHeader>
                   <button className="flex w-full items-center justify-between text-left" onClick={() => setExpandido((e) => (e === 'soft' ? null : 'soft'))}>
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Star className="h-4 w-4 text-amber-500" />
+                      <Star className="h-4 w-4 text-[#0D5C7A]" />
                       Soft Skills
                       <Badge className="text-xs ml-1" style={{ background: '#F59E0B15', color: '#F59E0B', border: 'none' }}>
                         {resultado.soft_skills.length}

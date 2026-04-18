@@ -43,7 +43,7 @@ function SelectTrigger({
       className={cn(
         "flex w-full items-center justify-between gap-2 rounded-lg border border-[#EDEAE4] bg-white px-3 py-2 text-sm text-[#061F2A] whitespace-nowrap transition-colors outline-none",
         "data-[placeholder]:text-[#B0A8A0]",
-        "hover:border-[#C8E8EF]",
+        "hover:border-[#C2D8DE]",
         "focus-visible:border-[#0D5C7A] focus-visible:ring-2 focus-visible:ring-[#0D5C7A]",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "data-[size=default]:h-10 data-[size=sm]:h-9",
@@ -119,7 +119,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-2 rounded-lg py-2 pr-8 pl-3 text-sm text-[#061F2A] outline-none select-none transition-colors",
-        "hover:bg-[#E8F5F8] hover:text-[#0D5C7A] focus:bg-[#E8F5F8] focus:text-[#0D5C7A]",
+        "hover:bg-[#EBF2F5] hover:text-[#0D5C7A] focus:bg-[#EBF2F5] focus:text-[#0D5C7A]",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,

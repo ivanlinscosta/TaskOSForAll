@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router';
 import { useAuth } from '../../lib/auth-context';
+import loadingImg from '../../assets/taskall_new_brand/loading_light.svg';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,11 +14,12 @@ export function ProtectedRoute({ children, allowOnboarding }: ProtectedRouteProp
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--theme-background)]">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-[var(--theme-accent)] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-[var(--theme-muted-foreground)]">Carregando...</p>
-        </div>
+      <div className="fixed inset-0 flex items-center justify-center bg-white">
+        <img
+          src={loadingImg}
+          alt="Carregando TaskAll..."
+          className="w-full max-w-[300px] select-none pointer-events-none"
+        />
       </div>
     );
   }

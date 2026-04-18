@@ -38,7 +38,7 @@ export default function AppSidebar() {
         }}
       >
         <div className={cn('flex items-center gap-3', sidebarCollapsed && 'w-full justify-center')}>
-          <img src={symbol} alt="TaskAll" className="h-8 w-8 flex-shrink-0 brightness-0 invert" />
+          <img src={symbol} alt="TaskAll" className="h-8 w-8 flex-shrink-0" />
           {!sidebarCollapsed && (
             <div className="min-w-0 leading-tight">
               <span className="block text-[17px] font-bold tracking-tight text-white">TaskAll</span>

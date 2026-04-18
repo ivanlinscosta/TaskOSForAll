@@ -40,37 +40,44 @@ export default function Header() {
 
   return (
     <header
-      className="flex h-16 items-center justify-between px-6"
+      className="flex h-[72px] items-center justify-between px-6"
       style={{
-        background: 'var(--theme-card)',
-        borderBottom: '1px solid var(--theme-border)',
+        background: '#0D5C7A',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
       }}
     >
       <div>
-        <h1 className="text-lg font-bold text-[var(--theme-foreground)]">
-          Olá, {displayName.split(' ')[0]}
+        <h1 className="text-base font-bold text-white">
+          Olá, {displayName.split(' ')[0]} 👋
         </h1>
-        <p className="text-xs text-[var(--theme-muted-foreground)]">
-          Sua central de evolução pessoal e profissional.
+        <p className="text-xs text-white/60">
+          Seu assistente de vida
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button type="button" size="icon" variant="ghost" className="rounded-xl">
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
+        >
           <Bell className="h-4 w-4" />
         </Button>
 
         <button
           onClick={() => navigate('/perfil')}
-          className="flex items-center gap-3 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-background)] px-3 py-1.5 transition hover:shadow-sm"
+          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 transition hover:bg-white/10"
         >
-          <Avatar className="h-9 w-9 border border-[var(--theme-border)]">
+          <Avatar className="h-8 w-8" style={{ border: '2px solid rgba(255,255,255,0.3)' }}>
             <AvatarImage src={userProfile?.avatar} alt={displayName} />
-            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+            <AvatarFallback style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '12px' }}>
+              {getInitials(displayName)}
+            </AvatarFallback>
           </Avatar>
           <div className="hidden text-left sm:block">
-            <p className="text-sm font-semibold text-[var(--theme-foreground)]">{displayName}</p>
-            <p className="text-[11px] text-[var(--theme-muted-foreground)]">{role}</p>
+            <p className="text-sm font-semibold text-white">{displayName}</p>
+            <p className="text-[11px] text-white/60">{role}</p>
           </div>
         </button>
 
@@ -78,7 +85,7 @@ export default function Header() {
           type="button"
           size="icon"
           variant="ghost"
-          className="rounded-xl text-destructive hover:bg-destructive/10"
+          className="rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" />

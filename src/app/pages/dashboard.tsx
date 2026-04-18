@@ -168,7 +168,7 @@ export function Dashboard() {
             <Card className="rounded-[28px] border-[var(--theme-border)]">
               <CardContent className="p-5 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: '#F59E0B15' }}>
-                  <Flame className="h-6 w-6 text-amber-500" />
+                  <Flame className="h-6 w-6 text-[#0D5C7A]" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[var(--theme-muted-foreground)]">Streak</p>
@@ -186,7 +186,7 @@ export function Dashboard() {
       {highlights.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-[var(--theme-foreground)] flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500" /> Highlights personalizados para você
+            <Lightbulb className="h-4 w-4 text-[#0D5C7A]" /> Highlights personalizados para você
           </h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {highlights.slice(0, 3).map((h, idx) => {
@@ -224,8 +224,8 @@ export function Dashboard() {
       {/* ── Próxima melhor ação ── */}
       {nextAction && (
         <div className="flex items-start gap-4 rounded-2xl p-4"
-          style={{ background: 'var(--theme-accent)10', border: '1px solid var(--theme-accent)25' }}>
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--theme-accent)20' }}>
+          style={{ background: 'rgba(13,92,122,0.06)', border: '1px solid rgba(13,92,122,0.15)' }}>
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'rgba(13,92,122,0.12)' }}>
             <Sparkles className="h-5 w-5" style={{ color: 'var(--theme-accent)' }} />
           </div>
           <div className="min-w-0 flex-1">

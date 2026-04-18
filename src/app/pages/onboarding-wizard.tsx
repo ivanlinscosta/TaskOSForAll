@@ -518,7 +518,7 @@ function Step2({
           ) : (
             <div className="flex items-center gap-2 mb-4 rounded-xl px-3 py-2 text-xs border"
               style={{ background: '#F59E0B10', borderColor: '#F59E0B30', color: '#92400E' }}>
-              <Briefcase className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+              <Briefcase className="h-3.5 w-3.5 text-[#0D5C7A] flex-shrink-0" />
               <span>Sem currículo: preencha todos os campos com <strong>*</strong> para que a IA monte seu perfil corretamente.</span>
             </div>
           )}
@@ -529,25 +529,25 @@ function Step2({
                 value={data.cargo}
                 onChange={(e) => onChange({ cargo: e.target.value })}
                 placeholder="Ex: Desenvolvedor Full Stack"
-                className={!hasCurriculo && !data.cargo.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
+                className={!hasCurriculo && !data.cargo.trim() ? 'border-[#0D5C7A]/30 focus-visible:ring-[#0D5C7A]' : ''}
               />
             </div>
             <div className="space-y-2">
-              <Label>Empresa atual {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
+              <Label>Empresa atual {!hasCurriculo && <span className="text-[#0D5C7A]">*</span>}</Label>
               <Input
                 value={data.empresa_atual}
                 onChange={(e) => onChange({ empresa_atual: e.target.value })}
                 placeholder="Ex: FIAP, Itaú, startup"
-                className={!hasCurriculo && !data.empresa_atual.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
+                className={!hasCurriculo && !data.empresa_atual.trim() ? 'border-[#0D5C7A]/30 focus-visible:ring-[#0D5C7A]' : ''}
               />
             </div>
             <div className="space-y-2">
-              <Label>Área de atuação {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
+              <Label>Área de atuação {!hasCurriculo && <span className="text-[#0D5C7A]">*</span>}</Label>
               <Input
                 value={data.area}
                 onChange={(e) => onChange({ area: e.target.value })}
                 placeholder="Ex: Tecnologia, Educação"
-                className={!hasCurriculo && !data.area.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
+                className={!hasCurriculo && !data.area.trim() ? 'border-[#0D5C7A]/30 focus-visible:ring-[#0D5C7A]' : ''}
               />
             </div>
             <div className="space-y-2">
@@ -567,13 +567,13 @@ function Step2({
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Atividades profissionais {!hasCurriculo && <span className="text-amber-500">*</span>}</Label>
+              <Label>Atividades profissionais {!hasCurriculo && <span className="text-[#0D5C7A]">*</span>}</Label>
               <Textarea
                 value={data.atividades_profissionais}
                 onChange={(e) => onChange({ atividades_profissionais: e.target.value })}
                 placeholder="Descreva suas principais atividades e entregas atuais…"
                 rows={3}
-                className={!hasCurriculo && !data.atividades_profissionais.trim() ? 'border-amber-300 focus-visible:ring-amber-400' : ''}
+                className={!hasCurriculo && !data.atividades_profissionais.trim() ? 'border-[#0D5C7A]/30 focus-visible:ring-[#0D5C7A]' : ''}
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
@@ -806,7 +806,7 @@ function Step4({
     <div className="space-y-6">
       <div className="space-y-1">
         <div className="inline-flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-amber-500" />
+          <Wallet className="h-5 w-5 text-[#0D5C7A]" />
           <h2 className="text-2xl font-bold">Seu perfil financeiro</h2>
         </div>
         <p className="text-sm text-[var(--theme-muted-foreground)]">
@@ -1281,8 +1281,8 @@ function StepSuccess({ nome, itemsAdded }: { nome: string; itemsAdded: number })
           style={{ background: 'var(--theme-card)', borderColor: 'var(--theme-border)' }}
         >
           <div className="flex items-center gap-1">
-            <Zap className="h-6 w-6 text-amber-500" />
-            <span className="text-3xl font-bold text-amber-500">{itemsAdded * 20 + 30}</span>
+            <Zap className="h-6 w-6 text-[#0D5C7A]" />
+            <span className="text-3xl font-bold text-[#0D5C7A]">{itemsAdded * 20 + 30}</span>
           </div>
           <span className="text-xs text-[var(--theme-muted-foreground)]">XP iniciais</span>
         </div>
@@ -1290,7 +1290,7 @@ function StepSuccess({ nome, itemsAdded }: { nome: string; itemsAdded: number })
           className="flex flex-col items-center gap-1 rounded-2xl border px-6 py-4"
           style={{ background: 'var(--theme-card)', borderColor: 'var(--theme-border)' }}
         >
-          <Flame className="h-6 w-6 text-orange-500" />
+          <Flame className="h-6 w-6 text-[#0D5C7A]" />
           <span className="text-xs text-[var(--theme-muted-foreground)]">Streak ativado</span>
         </div>
         <div

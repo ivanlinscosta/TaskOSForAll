@@ -16,8 +16,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "disabled:pointer-events-none disabled:opacity-50",
           {
             "bg-[#0D5C7A] text-white hover:bg-[#1280A8]": variant === "default",
-            "border border-[#EDEAE4] bg-white text-[#061F2A] hover:bg-[#E8F5F8] hover:text-[#0D5C7A] hover:border-[#C8E8EF]": variant === "outline",
-            "text-[#061F2A] hover:bg-[#E8F5F8] hover:text-[#0D5C7A]": variant === "ghost",
+            "border border-[#EDEAE4] bg-white text-[#061F2A] hover:bg-[#EBF2F5] hover:text-[#0D5C7A] hover:border-[#C2D8DE]": variant === "outline",
+            "text-[#061F2A] hover:bg-[#EBF2F5] hover:text-[#0D5C7A]": variant === "ghost",
             "bg-destructive text-destructive-foreground hover:bg-destructive/90": variant === "destructive",
             "bg-[var(--theme-accent)] text-[var(--theme-accent-foreground)] hover:bg-[#1280A8]": variant === "theme",
           },
