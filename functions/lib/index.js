@@ -1,9 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.vagasCallable = exports.investmentProjectionCallable = exports.investmentInsightsCallable = exports.curriculoParserCallable = exports.viagemPlanningCallable = exports.carreiraAnaliseCallable = exports.financasInsightsCallable = exports.extratoParserCallable = exports.faturaParserCallable = exports.assistantImageFlowCallable = exports.assistantFlowCallable = void 0;
+exports.vagasCallable = exports.investmentProjectionCallable = exports.investmentInsightsCallable = exports.curriculoParserCallable = exports.viagemPlanningCallable = exports.carreiraAnaliseCallable = exports.financasInsightsCallable = exports.extratoParserCallable = exports.faturaParserCallable = exports.assistantImageFlowCallable = exports.assistantFlowCallable = exports.deactivateGuidedTourCampaign = exports.publishGuidedTourCampaign = exports.validateGuidedTourCampaign = void 0;
 const https_1 = require("firebase-functions/https");
 const params_1 = require("firebase-functions/params");
 const assistant_flow_1 = require("./flows/assistant-flow");
+var guided_tour_functions_1 = require("./guided-tour-functions");
+Object.defineProperty(exports, "validateGuidedTourCampaign", { enumerable: true, get: function () { return guided_tour_functions_1.validateGuidedTourCampaign; } });
+Object.defineProperty(exports, "publishGuidedTourCampaign", { enumerable: true, get: function () { return guided_tour_functions_1.publishGuidedTourCampaign; } });
+Object.defineProperty(exports, "deactivateGuidedTourCampaign", { enumerable: true, get: function () { return guided_tour_functions_1.deactivateGuidedTourCampaign; } });
 const assistant_image_flow_1 = require("./flows/assistant-image-flow");
 const fatura_parser_flow_1 = require("./flows/fatura-parser-flow");
 const extrato_parser_flow_1 = require("./flows/extrato-parser-flow");

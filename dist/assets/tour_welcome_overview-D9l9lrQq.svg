@@ -1,0 +1,80 @@
+<svg viewBox="0 0 320 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background glow -->
+  <ellipse cx="160" cy="140" rx="120" ry="100" fill="url(#glowBg)" opacity="0.3"/>
+
+  <!-- Outer orbit ring -->
+  <circle cx="160" cy="140" r="100" stroke="#8B5CF6" stroke-width="1" stroke-dasharray="4 6" opacity="0.3"/>
+  <!-- Middle orbit ring -->
+  <circle cx="160" cy="140" r="70" stroke="#8B5CF6" stroke-width="1" stroke-dasharray="3 5" opacity="0.2"/>
+
+  <!-- Central platform hexagon -->
+  <polygon points="160,68 200,90 200,134 160,156 120,134 120,90" fill="url(#hexGrad)" opacity="0.95"/>
+  <polygon points="160,74 196,94 196,130 160,150 124,130 124,94" fill="none" stroke="white" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Center T logo -->
+  <rect x="148" y="96" width="24" height="5" rx="2.5" fill="white" opacity="0.95"/>
+  <rect x="157.5" y="101" width="5" height="22" rx="2.5" fill="white" opacity="0.95"/>
+
+  <!-- Orbit dots -->
+  <circle cx="160" cy="40" r="6" fill="#8B5CF6"/>
+  <circle cx="160" cy="40" r="3" fill="white"/>
+  <circle cx="248" cy="105" r="5" fill="#A78BFA"/>
+  <circle cx="248" cy="105" r="2.5" fill="white"/>
+  <circle cx="248" cy="175" r="5" fill="#C4B5FD"/>
+  <circle cx="248" cy="175" r="2.5" fill="white"/>
+  <circle cx="160" cy="240" r="6" fill="#8B5CF6"/>
+  <circle cx="160" cy="240" r="3" fill="white"/>
+  <circle cx="72" cy="175" r="5" fill="#A78BFA"/>
+  <circle cx="72" cy="175" r="2.5" fill="white"/>
+  <circle cx="72" cy="105" r="5" fill="#C4B5FD"/>
+  <circle cx="72" cy="105" r="2.5" fill="white"/>
+
+  <!-- Connection lines from center to dots -->
+  <line x1="160" y1="68" x2="160" y2="46" stroke="#8B5CF6" stroke-width="1" opacity="0.4"/>
+  <line x1="200" y1="112" x2="243" y2="107" stroke="#8B5CF6" stroke-width="1" opacity="0.4"/>
+  <line x1="200" y1="112" x2="243" y2="173" stroke="#8B5CF6" stroke-width="1" opacity="0.35"/>
+  <line x1="160" y1="156" x2="160" y2="234" stroke="#8B5CF6" stroke-width="1" opacity="0.4"/>
+  <line x1="120" y1="112" x2="77" y2="173" stroke="#8B5CF6" stroke-width="1" opacity="0.35"/>
+  <line x1="120" y1="112" x2="77" y2="107" stroke="#8B5CF6" stroke-width="1" opacity="0.4"/>
+
+  <!-- Feature labels on orbit dots -->
+  <!-- Career -->
+  <rect x="148" y="22" width="24" height="11" rx="5.5" fill="#7C3AED" opacity="0.9"/>
+  <text x="160" y="31" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">CARREIRA</text>
+
+  <!-- Finance -->
+  <rect x="254" y="96" width="28" height="11" rx="5.5" fill="#059669" opacity="0.9"/>
+  <text x="268" y="105" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">FINANÇAS</text>
+
+  <!-- Dev -->
+  <rect x="254" y="165" width="32" height="11" rx="5.5" fill="#D97706" opacity="0.9"/>
+  <text x="270" y="174" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">EVOLUÇÃO</text>
+
+  <!-- AI -->
+  <rect x="148" y="245" width="24" height="11" rx="5.5" fill="#0284C7" opacity="0.9"/>
+  <text x="160" y="254" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">IA</text>
+
+  <!-- Games -->
+  <rect x="30" y="165" width="36" height="11" rx="5.5" fill="#DB2777" opacity="0.9"/>
+  <text x="48" y="174" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">GAMIFICAÇÃO</text>
+
+  <!-- Vagas -->
+  <rect x="28" y="96" width="38" height="11" rx="5.5" fill="#7C3AED" opacity="0.85"/>
+  <text x="47" y="105" text-anchor="middle" fill="white" font-size="6" font-family="system-ui" font-weight="600">VAGAS IA</text>
+
+  <!-- Sparkles -->
+  <path d="M108 58 L110 52 L112 58 L118 60 L112 62 L110 68 L108 62 L102 60 Z" fill="#C4B5FD" opacity="0.8"/>
+  <path d="M202 212 L203.5 208 L205 212 L209 213.5 L205 215 L203.5 219 L202 215 L198 213.5 Z" fill="#A78BFA" opacity="0.7"/>
+  <path d="M226 62 L227 59 L228 62 L231 63 L228 64 L227 67 L226 64 L223 63 Z" fill="#DDD6FE" opacity="0.6"/>
+
+  <defs>
+    <radialGradient id="glowBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hexGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+  </defs>
+</svg>
