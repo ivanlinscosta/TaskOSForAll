@@ -1,0 +1,10 @@
+<svg width="390" height="844" viewBox="0 0 390 844" xmlns="http://www.w3.org/2000/svg">
+  <rect width="390" height="844" fill="white"/>
+  <rect x="159" y="320" width="72" height="72" rx="18" fill="#0D5C7A"/>
+  <circle cx="195" cy="356" r="21" fill="none" stroke="white" stroke-width="7" stroke-linecap="round" stroke-dasharray="113 19" stroke-dashoffset="40"/>
+  <path d="M195 343C195 343 198 352 207 356C198 352 195 365 195 365C195 365 192 352 183 356C192 352 195 343 195 343Z" fill="white"/>
+  <text x="195" y="426" font-family="system-ui,-apple-system,sans-serif" font-size="32" font-weight="300" fill="#061F2A" text-anchor="middle">Task<tspan font-weight="700" fill="#0D5C7A">All</tspan></text>
+  <text x="195" y="452" font-family="system-ui,-apple-system,sans-serif" font-size="12" fill="#B0C8D0" text-anchor="middle" letter-spacing="2">SEU ASSISTENTE DE VIDA</text>
+  <rect x="95" y="490" width="200" height="3" rx="1.5" fill="#0D5C7A" opacity="0.12"/>
+  <rect x="95" y="490" width="120" height="3" rx="1.5" fill="#0D5C7A"/>
+</svg>

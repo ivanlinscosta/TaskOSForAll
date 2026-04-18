@@ -1,15 +1,17 @@
 import type { UserPreferences, WorkspaceMode } from './auth-context';
 import {
-  Home,
-  CheckSquare,
-  CalendarRange,
-  Wallet,
-  TrendingUp,
-  GraduationCap,
-  Plane,
-  MessageSquare,
-  type LucideIcon,
-} from 'lucide-react';
+  IconDashboard,
+  IconTarefas,
+  IconPlanejamento,
+  IconFinancas,
+  IconCarreira,
+  IconDesenvolvimento,
+  IconViagens,
+  IconChat,
+  IconMetas,
+} from '../app/components/brand/BrandIcons';
+
+export type BrandIcon = (props: { color?: string; size?: number; className?: string }) => JSX.Element;
 
 export type GoalDefinition = {
   id: string;
@@ -60,7 +62,7 @@ export type DynamicMenuItem = {
   key: string;
   label: string;
   path: string;
-  icon: LucideIcon;
+  icon: BrandIcon;
   description: string;
 };
 
@@ -71,56 +73,56 @@ export const MAIN_MENU: DynamicMenuItem[] = [
     key: 'dashboard',
     label: 'Dashboard',
     path: '/',
-    icon: Home,
+    icon: IconDashboard,
     description: 'Visão geral, insights e próximas ações.',
   },
   {
     key: 'tarefas',
     label: 'Tarefas Diárias',
     path: '/tarefas',
-    icon: CheckSquare,
+    icon: IconTarefas,
     description: 'Kanban e rotina do dia.',
   },
   {
     key: 'planejamento',
     label: 'Planejamento',
     path: '/planejamento',
-    icon: CalendarRange,
+    icon: IconPlanejamento,
     description: 'Compromissos, reuniões e semana.',
   },
   {
     key: 'financas',
     label: 'Gestão Financeira',
     path: '/financas',
-    icon: Wallet,
+    icon: IconFinancas,
     description: 'Receitas, despesas e metas.',
   },
   {
     key: 'carreira',
     label: 'Gestão de Carreira',
     path: '/carreira',
-    icon: TrendingUp,
+    icon: IconCarreira,
     description: 'Análise profissional e recomendações.',
   },
   {
     key: 'desenvolvimento',
     label: 'Meu Desenvolvimento',
     path: '/meu-desenvolvimento',
-    icon: GraduationCap,
+    icon: IconDesenvolvimento,
     description: 'Trilha gamificada com cursos, livros e vídeos.',
   },
   {
     key: 'viagens',
     label: 'Viagens',
     path: '/pessoal/viagens',
-    icon: Plane,
+    icon: IconViagens,
     description: 'Planeje e acompanhe suas viagens.',
   },
   {
     key: 'chat',
     label: 'Chat Direto',
     path: '/chat',
-    icon: MessageSquare,
+    icon: IconChat,
     description: 'Cadastre dados por conversa.',
   },
 ];

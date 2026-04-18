@@ -1,13 +1,31 @@
 import { Link, useLocation } from 'react-router';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../../stores/useAppStore';
+import { useAuth } from '../../../lib/auth-context';
 import { cn } from '../../../lib/utils';
 import { MAIN_MENU } from '../../../lib/taskos-forall';
-import { TaskOSRadarIcon } from '../../layouts/WorkspaceLogo';
+import { IconMetas } from '../brand/BrandIcons';
+import logoPrincipal from '../../../assets/taskall_new_brand/logo_principal.svg';
+import logoDark from '../../../assets/taskall_new_brand/logo_dark.svg';
+import symbol from '../../../assets/taskall_new_brand/symbol_32.svg';
+
+const INACTIVE_COLOR = '#B0A8A0';
+const ACTIVE_COLOR = '#FFFFFF';
+const ACTIVE_BG = '#0D5C7A';
+const ACTIVE_RADIUS = '9px';
 
 export default function AppSidebar() {
   const location = useLocation();
   const { sidebarCollapsed, toggleSidebar, vagasAtivas } = useAppStore();
+  const { user, userProfile } = useAuth();
+
+  // Derive initials from display name or email
+  const initials = (() => {
+    const name = userProfile?.nome || user?.displayName || user?.email || '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  })();
 
   return (
     <aside
@@ -15,94 +33,65 @@ export default function AppSidebar() {
         'sticky top-0 flex h-screen flex-col border-r transition-all duration-300',
         sidebarCollapsed ? 'w-16' : 'w-72',
       )}
-      style={{
-        background: 'var(--theme-card)',
-        borderColor: 'var(--theme-border)',
-      }}
+      style={{ background: '#FFFFFF', borderColor: '#EDEAE4' }}
     >
       {/* ── Header/Logo ── */}
-      <div
-        className="flex h-16 items-center justify-between px-4"
-        style={{ borderBottom: '1px solid var(--theme-border)' }}
-      >
+      <div className="flex h-16 items-center justify-between px-4" style={{ borderBottom: '1px solid #EDEAE4' }}>
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-              style={{ background: 'var(--theme-background-secondary)' }}
-            >
-              <TaskOSRadarIcon size={28} />
-            </div>
-            <div className="leading-tight">
-              <span
-                className="block text-lg font-bold"
-                style={{ color: 'var(--theme-foreground)' }}
-              >
-                TaskAll
-              </span>
-              <span
-                className="text-xs"
-                style={{ color: 'var(--theme-muted-foreground)' }}
-              >
-                Sua plataforma de evolução
-              </span>
-            </div>
-          </div>
+          <img
+            src={logoPrincipal}
+            alt="TaskAll"
+            className="h-9 w-auto object-contain"
+            style={{ maxWidth: '160px' }}
+          />
         )}
 
         {sidebarCollapsed && (
           <div className="flex flex-1 justify-center">
-            <TaskOSRadarIcon size={24} collapsed />
+            <img src={symbol} alt="TaskAll" className="h-8 w-8" />
           </div>
         )}
 
         <button
           onClick={toggleSidebar}
-          className="rounded-lg p-1.5 transition-colors"
-          style={{ color: 'var(--theme-foreground)' }}
+          className="rounded-lg p-1.5 transition-colors hover:bg-[#E8F5F8]"
+          style={{ color: '#B0A8A0' }}
           aria-label={sidebarCollapsed ? 'Expandir' : 'Recolher'}
         >
-          {sidebarCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
 
       {/* ── Menu principal ── */}
       <nav className="flex-1 overflow-y-auto p-3">
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {MAIN_MENU.map((item) => {
             const isActive =
               location.pathname === item.path ||
               (item.path !== '/' && location.pathname.startsWith(item.path));
             const Icon = item.icon;
+            const iconColor = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
 
             return (
               <Link
                 key={item.key}
                 to={item.path}
                 className={cn(
-                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
+                  'group flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
                   sidebarCollapsed && 'justify-center',
                 )}
                 style={
                   isActive
-                    ? {
-                        background: 'var(--theme-accent)',
-                        color: 'var(--theme-accent-foreground)',
-                        boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
-                      }
-                    : { color: 'var(--theme-foreground)' }
+                    ? { background: ACTIVE_BG, color: ACTIVE_COLOR, borderRadius: ACTIVE_RADIUS, boxShadow: '0 2px 8px rgba(13,92,122,0.18)' }
+                    : { color: '#1A1410', borderRadius: ACTIVE_RADIUS }
                 }
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'scale-105')} />
+                <Icon color={iconColor} size={20} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <div className="min-w-0">
                     <span className="block font-medium">{item.label}</span>
-                    <span className="block truncate text-[11px] opacity-70">
+                    <span className="block truncate text-[11px]" style={{ opacity: isActive ? 0.7 : 1, color: isActive ? ACTIVE_COLOR : '#B0A8A0' }}>
                       {item.description}
                     </span>
                   </div>
@@ -114,24 +103,28 @@ export default function AppSidebar() {
           {/* Vagas Para Mim — aparece após aceitar recomendações */}
           {vagasAtivas && (() => {
             const isActive = location.pathname === '/vagas-para-mim';
+            const iconColor = isActive ? ACTIVE_COLOR : INACTIVE_COLOR;
             return (
               <Link
                 to="/vagas-para-mim"
                 className={cn(
-                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
+                  'group flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
                   sidebarCollapsed && 'justify-center',
                 )}
-                style={isActive
-                  ? { background: 'var(--theme-accent)', color: 'var(--theme-accent-foreground)', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }
-                  : { color: 'var(--theme-foreground)' }
+                style={
+                  isActive
+                    ? { background: ACTIVE_BG, color: ACTIVE_COLOR, borderRadius: ACTIVE_RADIUS, boxShadow: '0 2px 8px rgba(13,92,122,0.18)' }
+                    : { color: '#1A1410', borderRadius: ACTIVE_RADIUS }
                 }
                 title={sidebarCollapsed ? 'Vagas Para Mim' : undefined}
               >
-                <Sparkles className={cn('h-5 w-5 flex-shrink-0', isActive && 'scale-105')} />
+                <IconMetas color={iconColor} size={20} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <div className="min-w-0">
                     <span className="block font-medium">Vagas Para Mim</span>
-                    <span className="block truncate text-[11px] opacity-70">Vagas recomendadas com IA</span>
+                    <span className="block truncate text-[11px]" style={{ opacity: isActive ? 0.7 : 1, color: isActive ? ACTIVE_COLOR : '#B0A8A0' }}>
+                      Vagas recomendadas com IA
+                    </span>
                   </div>
                 )}
               </Link>
@@ -140,15 +133,26 @@ export default function AppSidebar() {
         </div>
       </nav>
 
+      {/* ── User footer ── */}
       {!sidebarCollapsed && (
         <div
-          className="p-4 text-center text-xs"
-          style={{
-            borderTop: '1px solid var(--theme-border)',
-            color: 'var(--theme-muted-foreground)',
-          }}
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ borderTop: '1px solid #EDEAE4' }}
         >
-          Feito para você
+          <div
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+            style={{ background: '#0D5C7A' }}
+          >
+            {initials || 'U'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium" style={{ color: '#061F2A' }}>
+              {userProfile?.nome || user?.displayName || user?.email?.split('@')[0] || 'Usuário'}
+            </p>
+            <p className="text-[11px]" style={{ color: '#B0A8A0' }}>
+              Premium
+            </p>
+          </div>
         </div>
       )}
     </aside>

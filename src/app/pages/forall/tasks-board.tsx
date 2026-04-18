@@ -46,7 +46,7 @@ type TaskRecord = {
 const COLUNAS: { status: Status; label: string; icon: React.ElementType; color: string }[] = [
   { status: 'backlog', label: 'A Fazer', icon: Circle, color: '#6B7280' },
   { status: 'doing', label: 'Em progresso', icon: Clock3, color: '#F59E0B' },
-  { status: 'done', label: 'Concluído', icon: CheckSquare, color: '#059669' },
+  { status: 'done', label: 'Concluído', icon: CheckSquare, color: '#0D5C7A' },
 ];
 
 const PRIORITY_COLORS: Record<string, string> = {

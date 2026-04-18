@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
 import { toast } from 'sonner';
-import taskosIcon from '../../assets/task-os-icon.png';
+import taskosIcon from '../../assets/taskall_new_brand/symbol_64.svg';
 import dashboardBg from '../../assets/trabalho_dashboard.svg';
 
 export function Login() {
@@ -169,7 +169,7 @@ export function Login() {
       />
       <div
         className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full opacity-20 blur-3xl pointer-events-none"
-        style={{ background: '#EC7000' }}
+        style={{ background: '#0D5C7A' }}
       />
 
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-[var(--theme-border)] backdrop-blur-sm">
@@ -185,7 +185,7 @@ export function Login() {
             TaskAll
           </CardTitle>
           <CardDescription className="text-[var(--theme-muted-foreground)]">
-            Sua central de evolução pessoal e profissional.
+            Seu assistente de vida
           </CardDescription>
         </CardHeader>
 

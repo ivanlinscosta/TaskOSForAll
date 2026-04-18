@@ -1,0 +1,32 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <rect width="60" height="60" rx="14" fill="white" stroke="#E8EDF0" stroke-width="1"/>
+  <!-- lâmpada: bulbo -->
+  <circle cx="30" cy="18" r="8" fill="none" stroke="#0D5C7A" stroke-width="1.8"/>
+  <!-- lâmpada: base -->
+  <rect x="26" y="25" width="8" height="3" rx="1" fill="#0D5C7A" opacity="0.5"/>
+  <rect x="27" y="27" width="6" height="2" rx="1" fill="#0D5C7A" opacity="0.35"/>
+  <!-- lâmpada: raios -->
+  <line x1="30" y1="7"  x2="30" y2="9"  stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="38" y1="10" x2="37" y2="11.5" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="41" y1="18" x2="39" y2="18" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="22" y1="10" x2="23" y2="11.5" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="19" y1="18" x2="21" y2="18" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- livro aberto esquerda -->
+  <path d="M8 33 Q8 31 11 31 L29 31 L29 52 L10 52 Q8 52 8 50 Z" fill="#0D5C7A" opacity="0.1"/>
+  <path d="M8 33 Q8 31 11 31 L29 31 L29 52 L10 52 Q8 52 8 50 Z" fill="none" stroke="#0D5C7A" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- livro aberto direita -->
+  <path d="M52 33 Q52 31 49 31 L31 31 L31 52 L50 52 Q52 52 52 50 Z" fill="#0D5C7A" opacity="0.1"/>
+  <path d="M52 33 Q52 31 49 31 L31 31 L31 52 L50 52 Q52 52 52 50 Z" fill="none" stroke="#0D5C7A" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- lombada -->
+  <line x1="30" y1="31" x2="30" y2="52" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- curva base -->
+  <path d="M8 50 Q30 56 52 50" fill="none" stroke="#0D5C7A" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- linhas páginas esquerda -->
+  <line x1="12" y1="37" x2="26" y2="37" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+  <line x1="12" y1="41" x2="26" y2="41" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+  <line x1="12" y1="45" x2="26" y2="45" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+  <!-- linhas páginas direita -->
+  <line x1="34" y1="37" x2="48" y2="37" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+  <line x1="34" y1="41" x2="48" y2="41" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+  <line x1="34" y1="45" x2="48" y2="45" stroke="#0D5C7A" stroke-width="1.1" stroke-linecap="round" opacity="0.45"/>
+</svg>

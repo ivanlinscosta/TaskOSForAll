@@ -1,0 +1,264 @@
+<svg width="1440" height="960" viewBox="0 0 1440 960" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="960" fill="#F4F3EF"/>
+
+  <!-- SIDEBAR -->
+  <rect x="0" y="0" width="264" height="960" fill="white"/>
+  <line x1="264" y1="0" x2="264" y2="960" stroke="#EDEAE4" stroke-width="0.75"/>
+
+  <!-- Logo -->
+  <rect x="24" y="24" width="36" height="36" rx="10" fill="#0D5C7A"/>
+  <circle cx="42" cy="42" r="11" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="58 10" stroke-dashoffset="20"/>
+  <path d="M42 35C42 35 44 41 50 42C44 41 42 49 42 49C42 49 40 41 34 42C40 41 42 35 42 35Z" fill="white"/>
+  <text x="70" y="39" font-family="system-ui,-apple-system,sans-serif" font-size="17" font-weight="300" fill="#061F2A">Task<tspan font-weight="700" fill="#0D5C7A">All</tspan></text>
+  <text x="70" y="53" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Seu assistente de vida</text>
+  <line x1="24" y1="76" x2="240" y2="76" stroke="#EDEAE4" stroke-width="0.75"/>
+
+  <!-- Nav ativo: Dashboard -->
+  <rect x="16" y="86" width="232" height="40" rx="9" fill="#0D5C7A"/>
+  <!-- ícone dashboard branco -->
+  <rect x="30" y="99" width="13" height="13" rx="3" fill="white" opacity="0.9"/>
+  <rect x="31" y="100" width="5" height="5" rx="1.2" fill="#0D5C7A"/>
+  <rect x="37" y="100" width="5" height="5" rx="1.2" fill="#0D5C7A" opacity="0.4"/>
+  <rect x="31" y="107" width="5" height="5" rx="1.2" fill="#0D5C7A" opacity="0.4"/>
+  <rect x="37" y="107" width="5" height="5" rx="1.2" fill="#0D5C7A" opacity="0.8"/>
+  <text x="52" y="110" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="500" fill="white">Dashboard</text>
+
+  <!-- Tarefas -->
+  <rect x="30" y="141" width="11" height="13" rx="2" fill="none" stroke="#B0A8A0" stroke-width="1.3"/>
+  <polyline points="32,147 34,149 38,145" fill="none" stroke="#B0A8A0" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="32" y1="152" x2="39" y2="152" stroke="#B0A8A0" stroke-width="1" opacity="0.5"/>
+  <text x="52" y="152" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Tarefas Diárias</text>
+  <text x="52" y="164" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Kanban e rotina do dia</text>
+
+  <!-- Planejamento -->
+  <rect x="30" y="186" width="11" height="11" rx="2" fill="none" stroke="#B0A8A0" stroke-width="1.3"/>
+  <rect x="30" y="186" width="11" height="4" rx="2" fill="#B0A8A0" opacity="0.3"/>
+  <line x1="33" y1="183" x2="33" y2="189" stroke="#B0A8A0" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="38" y1="183" x2="38" y2="189" stroke="#B0A8A0" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="33" cy="194" r="1.2" fill="#B0A8A0"/>
+  <circle cx="36" cy="194" r="1.2" fill="#B0A8A0" opacity="0.5"/>
+  <circle cx="39" cy="194" r="1.2" fill="#B0A8A0" opacity="0.5"/>
+  <text x="52" y="194" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Planejamento</text>
+  <text x="52" y="206" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Compromissos e semana</text>
+
+  <!-- Financeira -->
+  <rect x="30" y="228" width="11" height="9" rx="2" fill="none" stroke="#B0A8A0" stroke-width="1.3"/>
+  <rect x="30" y="225" width="8" height="4" rx="1.2" fill="#B0A8A0" opacity="0.4"/>
+  <circle cx="37" cy="232" r="1.8" fill="none" stroke="#B0A8A0" stroke-width="1"/>
+  <text x="52" y="236" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Gestão Financeira</text>
+  <text x="52" y="248" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Receitas, despesas e metas</text>
+
+  <!-- Carreira -->
+  <rect x="30" y="270" width="11" height="8" rx="1.5" fill="none" stroke="#B0A8A0" stroke-width="1.3"/>
+  <line x1="27" y1="278" x2="44" y2="278" stroke="#B0A8A0" stroke-width="1.3" stroke-linecap="round"/>
+  <path d="M27 278 L28.5 281 L42.5 281 L44 278" fill="none" stroke="#B0A8A0" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="52" y="278" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Gestão de Carreira</text>
+  <text x="52" y="290" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Análise e recomendações</text>
+
+  <!-- Desenvolvimento -->
+  <polygon points="35.5,311 42,314 35.5,317 29,314" fill="none" stroke="#B0A8A0" stroke-width="1.3" stroke-linejoin="round"/>
+  <rect x="32" y="316" width="7" height="4" rx="1" fill="none" stroke="#B0A8A0" stroke-width="1"/>
+  <path d="M41 314 Q44 318 43 322" fill="none" stroke="#B0A8A0" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="43" cy="323" r="1.2" fill="#B0A8A0"/>
+  <text x="52" y="320" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Meu Desenvolvimento</text>
+  <text x="52" y="332" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Trilha gamificada</text>
+
+  <!-- Viagens -->
+  <g transform="translate(35.5,361) rotate(-45)">
+    <ellipse cx="0" cy="-4.5" rx="1.8" ry="8" fill="#B0A8A0"/>
+    <path d="M-1.3 -2 L-8 2.5 L-8 5 L-1.3 1.8Z" fill="#B0A8A0"/>
+    <path d="M1.3 -2 L8 2.5 L8 5 L1.3 1.8Z" fill="#B0A8A0"/>
+    <path d="M-1.3 2.5 L-5 6 L-5 7.5 L-1.3 4.5Z" fill="#B0A8A0"/>
+    <path d="M1.3 2.5 L5 6 L5 7.5 L1.3 4.5Z" fill="#B0A8A0"/>
+  </g>
+  <text x="52" y="360" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Viagens</text>
+  <text x="52" y="372" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Planeje suas viagens</text>
+
+  <!-- Chat -->
+  <path d="M29 387 Q29 383 33 383 L43 383 Q47 383 47 387 L47 395 Q47 399 43 399 L36 399 L32 403 L32 399 Q29 399 29 395 Z" fill="none" stroke="#B0A8A0" stroke-width="1.3" stroke-linejoin="round"/>
+  <line x1="33" y1="389" x2="43" y2="389" stroke="#B0A8A0" stroke-width="1" opacity="0.6"/>
+  <line x1="33" y1="393" x2="40" y2="393" stroke="#B0A8A0" stroke-width="1" opacity="0.6"/>
+  <text x="52" y="394" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Chat Direto</text>
+  <text x="52" y="406" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Cadastre dados por conversa</text>
+
+  <!-- Vagas -->
+  <circle cx="35.5" cy="434" r="8.5" fill="none" stroke="#B0A8A0" stroke-width="1" opacity="0.35"/>
+  <circle cx="35.5" cy="434" r="5" fill="none" stroke="#B0A8A0" stroke-width="1.2" opacity="0.65"/>
+  <circle cx="35.5" cy="434" r="2" fill="#B0A8A0"/>
+  <text x="52" y="432" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Vagas Para Mim</text>
+  <text x="52" y="444" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">Recomendadas com IA</text>
+
+  <!-- Footer sidebar -->
+  <line x1="24" y1="880" x2="240" y2="880" stroke="#EDEAE4" stroke-width="0.75"/>
+  <circle cx="42" cy="912" r="18" fill="#0D5C7A"/>
+  <text x="42" y="917" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="white" text-anchor="middle">IC</text>
+  <text x="68" y="907" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="500" fill="#061F2A">Ivan Costa</text>
+  <text x="68" y="922" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A">Premium ✦</text>
+  <text x="234" y="946" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0" text-anchor="end">Feito para você</text>
+
+  <!-- HEADER -->
+  <rect x="264" y="0" width="1176" height="68" fill="white"/>
+  <line x1="264" y1="68" x2="1440" y2="68" stroke="#EDEAE4" stroke-width="0.75"/>
+  <text x="296" y="30" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="600" fill="#061F2A">Olá, Ivan</text>
+  <text x="296" y="50" font-family="system-ui,-apple-system,sans-serif" font-size="12" fill="#B0A8A0">Sua central de evolução pessoal e profissional.</text>
+  <circle cx="1398" cy="34" r="20" fill="#0D5C7A"/>
+  <text x="1398" y="39" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="white" text-anchor="middle">IC</text>
+  <text x="1364" y="28" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="500" fill="#061F2A" text-anchor="end">Ivan Costa</text>
+  <text x="1364" y="44" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#B0A8A0" text-anchor="end">Professor de MBA</text>
+
+  <!-- WELCOME CARD -->
+  <rect x="292" y="88" width="700" height="210" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="292" y="88" width="4" height="210" rx="2" fill="#0D5C7A"/>
+  <!-- tag TaskAll -->
+  <rect x="312" y="106" width="70" height="22" rx="6" fill="#E8F5F8"/>
+  <rect x="318" y="111" width="12" height="12" rx="3" fill="#0D5C7A"/>
+  <circle cx="324" cy="117" r="3.5" fill="none" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="18 4" stroke-dashoffset="6"/>
+  <path d="M324 113.5C324 113.5 325.5 116 328 116.5C325.5 116 324 119 324 119C324 119 322.5 116 320 116.5C322.5 116 324 113.5 324 113.5Z" fill="white"/>
+  <text x="334" y="121" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="600" fill="#0D5C7A">TaskAll</text>
+  <text x="312" y="158" font-family="system-ui,-apple-system,sans-serif" font-size="32" font-weight="700" fill="#061F2A">Olá, Ivan!</text>
+  <text x="312" y="185" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#1A1410">Você é <tspan font-weight="600">Professor de MBA</tspan> em <tspan font-weight="600">FIAP</tspan>. Seu dashboard foi montado com base no seu perfil.</text>
+  <!-- tags ação -->
+  <rect x="312" y="205" width="126" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="375" y="221" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ desenvolver carreira</text>
+  <rect x="448" y="205" width="116" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="506" y="221" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ organizar tarefas</text>
+  <rect x="574" y="205" width="116" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="632" y="221" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ organizar finanças</text>
+  <rect x="700" y="205" width="106" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="753" y="221" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ planejar agenda</text>
+  <rect x="312" y="238" width="112" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="368" y="254" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ planejar viagens</text>
+  <rect x="434" y="238" width="116" height="24" rx="12" fill="#E8F5F8" stroke="#C8E8EF" stroke-width="0.75"/>
+  <text x="492" y="254" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#0D5C7A" text-anchor="middle">✦ usar chat rápido</text>
+
+  <!-- NÍVEL -->
+  <rect x="1010" y="88" width="406" height="98" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <text x="1030" y="112" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="600" fill="#B0A8A0" letter-spacing="1">SEU NÍVEL</text>
+  <rect x="1030" y="122" width="58" height="22" rx="6" fill="#E8F5F8"/>
+  <text x="1059" y="137" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#0D5C7A" text-anchor="middle">Nível 1</text>
+  <text x="1102" y="136" font-family="system-ui,-apple-system,sans-serif" font-size="16" font-weight="700" fill="#061F2A">Iniciante</text>
+  <text x="1310" y="130" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#0D5C7A" text-anchor="end">⚡ 20 XP</text>
+  <text x="1396" y="130" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#B0A8A0" text-anchor="end">faltam 80 XP para Nv. 2</text>
+  <rect x="1030" y="152" width="366" height="5" rx="2.5" fill="#F0EDE4"/>
+  <rect x="1030" y="152" width="73" height="5" rx="2.5" fill="#0D5C7A"/>
+  <text x="1030" y="170" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">0 XP</text>
+  <text x="1213" y="170" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0" text-anchor="middle">20%</text>
+  <text x="1396" y="170" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0" text-anchor="end">100 XP</text>
+
+  <!-- STREAK -->
+  <rect x="1010" y="198" width="406" height="100" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="1030" y="218" width="44" height="44" rx="12" fill="#E8F5F8"/>
+  <circle cx="1052" cy="240" r="14" fill="none" stroke="#0D5C7A" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="74 14" stroke-dashoffset="26"/>
+  <path d="M1052 232C1052 232 1054.5 239 1060 240C1054.5 239 1052 247 1052 247C1052 247 1049.5 239 1044 240C1049.5 239 1052 232 1052 232Z" fill="#0D5C7A"/>
+  <text x="1086" y="234" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="600" fill="#B0A8A0" letter-spacing="1">STREAK</text>
+  <text x="1086" y="256" font-family="system-ui,-apple-system,sans-serif" font-size="22" font-weight="700" fill="#061F2A">1 dia</text>
+  <text x="1390" y="234" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0" text-anchor="end">Recorde</text>
+  <text x="1396" y="254" font-family="system-ui,-apple-system,sans-serif" font-size="18" font-weight="700" fill="#061F2A" text-anchor="end">1d</text>
+
+  <!-- HIGHLIGHTS -->
+  <text x="292" y="328" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="600" fill="#061F2A">Highlights personalizados para você</text>
+
+  <!-- Card Prof -->
+  <rect x="292" y="344" width="380" height="174" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="292" y="344" width="380" height="3" rx="1.5" fill="#0D5C7A"/>
+  <rect x="312" y="362" width="30" height="30" rx="8" fill="#E8F5F8"/>
+  <g transform="translate(327,377) rotate(-45)">
+    <ellipse cx="0" cy="-4.5" rx="2" ry="9" fill="#0D5C7A"/>
+    <path d="M-1.4 -2 L-10 3 L-10 5.5 L-1.4 2Z" fill="#0D5C7A"/>
+    <path d="M1.4 -2 L10 3 L10 5.5 L1.4 2Z" fill="#0D5C7A"/>
+    <path d="M-1.4 3 L-6 7 L-6 9 L-1.4 5.5Z" fill="#0D5C7A"/>
+    <path d="M1.4 3 L6 7 L6 9 L1.4 5.5Z" fill="#0D5C7A"/>
+  </g>
+  <text x="352" y="374" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="700" fill="#0D5C7A" letter-spacing="0.5">PROFISSIONAL</text>
+  <text x="312" y="414" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">Sua Jornada de Liderança</text>
+  <text x="312" y="432" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">em IA e Dados</text>
+  <text x="312" y="454" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">Você possui uma base técnica robusta.</text>
+  <text x="312" y="470" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">Foque em arquitetura de dados de</text>
+  <text x="312" y="486" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">próxima geração e governança MLOps.</text>
+  <text x="312" y="506" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#0D5C7A">→ Explore o conceito de Data Mesh</text>
+
+  <!-- Card Fin -->
+  <rect x="686" y="344" width="314" height="174" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="686" y="344" width="314" height="3" rx="1.5" fill="#1280A8"/>
+  <rect x="706" y="362" width="30" height="30" rx="8" fill="#E8F5F8"/>
+  <rect x="712" y="372" width="18" height="14" rx="3" fill="none" stroke="#0D5C7A" stroke-width="1.5"/>
+  <rect x="712" y="368" width="12" height="5" rx="1.5" fill="#0D5C7A" opacity="0.5"/>
+  <circle cx="724" cy="379" r="3" fill="none" stroke="#0D5C7A" stroke-width="1.2"/>
+  <text x="718" y="381" font-family="system-ui,-apple-system,sans-serif" font-size="7" font-weight="700" fill="#0D5C7A" text-anchor="middle">$</text>
+  <text x="746" y="374" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="700" fill="#1280A8" letter-spacing="0.5">FINANCEIRO</text>
+  <text x="706" y="414" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">Primeiro Passo para a</text>
+  <text x="706" y="432" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">Liberdade Financeira</text>
+  <text x="706" y="454" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">Seus objetivos são alcançáveis.</text>
+  <text x="706" y="470" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">Comece pela reserva de emergência</text>
+  <text x="706" y="486" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">e quitação de dívidas.</text>
+  <text x="706" y="506" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#1280A8">→ Inicie sua reserva HOJE</text>
+
+  <!-- Card Pessoal -->
+  <rect x="1010" y="344" width="406" height="174" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="1010" y="344" width="406" height="3" rx="1.5" fill="#2AABCF"/>
+  <rect x="1030" y="362" width="30" height="30" rx="8" fill="#E8F5F8"/>
+  <polygon points="1045,368 1052,371 1045,374 1038,371" fill="#0D5C7A"/>
+  <rect x="1041" y="373" width="8" height="6" rx="1.5" fill="#0D5C7A" opacity="0.7"/>
+  <text x="1070" y="374" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="700" fill="#2AABCF" letter-spacing="0.5">PESSOAL</text>
+  <text x="1030" y="414" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">Aprimorando sua Liderança</text>
+  <text x="1030" y="432" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700" fill="#061F2A">pela Delegação</text>
+  <text x="1030" y="454" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">Sua capacidade de mentorar é um</text>
+  <text x="1030" y="470" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">ativo. Potencialize delegando para</text>
+  <text x="1030" y="486" font-family="system-ui,-apple-system,sans-serif" font-size="11" fill="#7A7068">liberar tempo estratégico.</text>
+  <text x="1030" y="506" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="600" fill="#2AABCF">→ Identifique 3 tarefas para delegar</text>
+
+  <!-- PRÓXIMA AÇÃO -->
+  <rect x="292" y="538" width="1124" height="58" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="292" y="538" width="4" height="58" rx="2" fill="#0D5C7A"/>
+  <rect x="312" y="550" width="34" height="34" rx="9" fill="#E8F5F8"/>
+  <path d="M329 556C329 556 331.5 563 338 564C331.5 563 329 570 329 570C329 570 326.5 563 320 564C326.5 563 329 556 329 556Z" fill="#0D5C7A"/>
+  <text x="356" y="561" font-family="system-ui,-apple-system,sans-serif" font-size="9" font-weight="700" fill="#0D5C7A" letter-spacing="0.5">PRÓXIMA MELHOR AÇÃO</text>
+  <text x="356" y="578" font-family="system-ui,-apple-system,sans-serif" font-size="12" fill="#061F2A">Assista ao vídeo "Os 7 Hábitos das Pessoas Altamente Eficazes" — vale 50 XP.</text>
+  <rect x="1278" y="548" width="122" height="34" rx="9" fill="#0D5C7A"/>
+  <text x="1339" y="569" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="500" fill="white" text-anchor="middle">Ir para trilha →</text>
+
+  <!-- TRILHAS -->
+  <text x="292" y="626" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="600" fill="#061F2A">Suas trilhas de desenvolvimento</text>
+
+  <!-- Trilha 1 -->
+  <rect x="292" y="642" width="358" height="88" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="310" y="660" width="32" height="32" rx="9" fill="#E8F5F8"/>
+  <g transform="translate(326,676) rotate(-45)">
+    <ellipse cx="0" cy="-3.5" rx="1.6" ry="7.5" fill="#0D5C7A"/>
+    <path d="M-1.2 -1.8 L-8.5 2.5 L-8.5 5 L-1.2 1.8Z" fill="#0D5C7A"/>
+    <path d="M1.2 -1.8 L8.5 2.5 L8.5 5 L1.2 1.8Z" fill="#0D5C7A"/>
+    <path d="M-1.2 2.5 L-5.5 6.5 L-5.5 8 L-1.2 5Z" fill="#0D5C7A"/>
+    <path d="M1.2 2.5 L5.5 6.5 L5.5 8 L1.2 5Z" fill="#0D5C7A"/>
+  </g>
+  <text x="352" y="672" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#061F2A">Leitor Ativo</text>
+  <text x="352" y="688" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7A7068">Adicione 1 livro ao plano esta semana</text>
+  <text x="638" y="662" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0" text-anchor="end">Semanal</text>
+  <text x="640" y="662" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#0D5C7A" text-anchor="end">⚡ +60 XP</text>
+  <rect x="310" y="704" width="320" height="4" rx="2" fill="#F0EDE4"/>
+  <text x="310" y="720" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">0/1 concluídos · 7d restantes</text>
+
+  <!-- Trilha 2 -->
+  <rect x="664" y="642" width="358" height="88" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="682" y="660" width="32" height="32" rx="9" fill="#E8F5F8"/>
+  <circle cx="698" cy="676" r="10" fill="none" stroke="#0D5C7A" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="52 10" stroke-dashoffset="18"/>
+  <path d="M698 669C698 669 700 675 705 676C700 675 698 682 698 682C698 682 696 675 691 676C696 675 698 669 698 669Z" fill="#0D5C7A"/>
+  <text x="724" y="672" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#061F2A">Trilha do Mês</text>
+  <text x="724" y="688" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7A7068">Conclua 1 curso este mês</text>
+  <text x="1010" y="662" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#0D5C7A" text-anchor="end">⚡ +200 XP</text>
+  <rect x="682" y="704" width="320" height="4" rx="2" fill="#F0EDE4"/>
+  <text x="682" y="720" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">0/1 concluídos · 30d restantes</text>
+
+  <!-- Trilha 3 -->
+  <rect x="1036" y="642" width="380" height="88" rx="14" fill="white" stroke="#EDEAE4" stroke-width="0.75"/>
+  <rect x="1054" y="660" width="32" height="32" rx="9" fill="#E8F5F8"/>
+  <rect x="1062" y="668" width="16" height="20" rx="2.5" fill="none" stroke="#0D5C7A" stroke-width="1.5"/>
+  <polyline points="1066,677 1069,680 1074,674" fill="none" stroke="#0D5C7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="1066" y1="684" x2="1076" y2="684" stroke="#0D5C7A" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+  <text x="1096" y="672" font-family="system-ui,-apple-system,sans-serif" font-size="12" font-weight="600" fill="#061F2A">Primeiro Passo</text>
+  <text x="1096" y="688" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="#7A7068">Adicione 1 item ao desenvolvimento</text>
+  <text x="1390" y="662" font-family="system-ui,-apple-system,sans-serif" font-size="10" font-weight="600" fill="#0D5C7A" text-anchor="end">⚡ +75 XP</text>
+  <rect x="1054" y="704" width="342" height="4" rx="2" fill="#F0EDE4"/>
+  <text x="1054" y="720" font-family="system-ui,-apple-system,sans-serif" font-size="9" fill="#B0A8A0">0/1 concluídos · 7d restantes</text>
+
+  <text x="1420" y="950" font-family="system-ui,-apple-system,sans-serif" font-size="8" fill="#B0A8A0" text-anchor="end">TaskAll · Seu assistente de vida · taskos-forall.web.app</text>
+</svg>

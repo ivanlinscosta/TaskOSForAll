@@ -7,11 +7,11 @@ import { useAppStore } from '../../stores/useAppStore';
 const modeColors: Record<string, [string, string, string, string]> = {
   fiap:    ['#8B2FCF', '#7C22BD', '#C084FC', '#D8B4FE'],  // purple
   itau:    ['#EC7000', '#D96700', '#FDBA74', '#FED7AA'],  // orange
-  pessoal: ['#059669', '#047857', '#34D399', '#6EE7B7'],  // green (default)
+  pessoal: ['#0D5C7A', '#0A4A62', '#2AABCF', '#7DD3E8'],  // TaskAll Blue
   admin:   ['#6366F1', '#4F46E5', '#A5B4FC', '#C7D2FE'],  // indigo
 };
 
-const defaultColors: [string, string, string, string] = ['#059669', '#047857', '#34D399', '#6EE7B7'];
+const defaultColors: [string, string, string, string] = ['#0D5C7A', '#0A4A62', '#2AABCF', '#7DD3E8'];
 
 export function TaskOSRadarIcon({ size = 36 }: { size?: number; collapsed?: boolean }) {
   const { contextMode } = useAppStore();
