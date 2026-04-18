@@ -237,7 +237,8 @@ export function ForAllTasksBoard() {
           return (
             <div
               key={status}
-              className="min-h-[480px] rounded-[28px] border border-[var(--theme-border)] bg-[var(--theme-background-secondary)] p-4"
+              className="min-h-[480px] rounded-[28px] bg-[var(--theme-background-secondary)] p-4 shadow-sm"
+              style={{ border: '0.75px solid #EDEAE4' }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleDrop(status)}
             >
