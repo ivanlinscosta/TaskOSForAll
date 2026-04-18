@@ -37,29 +37,39 @@ export default function AppSidebar() {
     >
       {/* ── Header/Logo ── */}
       <div
-        className="flex h-16 items-center justify-between gap-2 px-4"
-        style={{ borderBottom: '1px solid #EDEAE4' }}
+        className="flex h-[72px] items-center justify-between"
+        style={{ borderBottom: '1px solid #EDEAE4', padding: sidebarCollapsed ? '0 8px' : '0 16px' }}
       >
         {sidebarCollapsed ? (
-          <div className="flex flex-1 justify-center">
-            <img src={symbol} alt="TaskAll" className="h-9 w-9" />
-          </div>
+          <>
+            <img src={symbol} alt="TaskAll" className="h-9 w-9 flex-shrink-0" />
+            <button
+              onClick={toggleSidebar}
+              className="rounded-lg p-1 transition-colors hover:bg-[#E8F5F8]"
+              style={{ color: '#B0A8A0' }}
+              aria-label="Expandir"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
         ) : (
-          <img
-            src={logoPrincipal}
-            alt="TaskAll"
-            className="h-10 w-auto flex-1 object-contain object-left"
-          />
+          <>
+            <img
+              src={logoPrincipal}
+              alt="TaskAll"
+              className="h-12 w-auto object-contain object-left"
+              style={{ maxWidth: '180px' }}
+            />
+            <button
+              onClick={toggleSidebar}
+              className="ml-2 flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#E8F5F8]"
+              style={{ color: '#B0A8A0' }}
+              aria-label="Recolher"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          </>
         )}
-
-        <button
-          onClick={toggleSidebar}
-          className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#E8F5F8]"
-          style={{ color: '#B0A8A0' }}
-          aria-label={sidebarCollapsed ? 'Expandir' : 'Recolher'}
-        >
-          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
       </div>
 
       {/* ── Menu principal ── */}

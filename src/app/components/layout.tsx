@@ -1,18 +1,15 @@
 import { Outlet } from 'react-router';
-import { useAppStore } from '../../stores/useAppStore';
 import { cn } from '../../lib/utils';
 import AppSidebar from '../../app/components/layout/AppSidebar';
 import Header from '../../app/components/layout/AppHeader';
 import { VagasNotification } from './VagasNotification';
 
 export function Layout() {
-  const { contextMode } = useAppStore();
-
   return (
     <div
       className={cn(
         'flex h-screen bg-[var(--theme-background)] text-[var(--theme-foreground)]',
-        contextMode === 'work' ? 'theme-itau' : 'theme-pessoal',
+        'theme-pessoal',
       )}
     >
       <AppSidebar />
