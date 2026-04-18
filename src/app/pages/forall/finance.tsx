@@ -372,14 +372,14 @@ export function ForAllFinancePage() {
           const d = new Date(year, m, Math.min(day, new Date(year, m + 1, 0).getDate()));
           const dateStr = d.toISOString().split('T')[0];
           const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: dateStr });
-          newItems.push({ id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, valor, data: dateStr });
+          newItems.push({ id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, categoria: categoriaFinal, valor, data: dateStr });
         }
         setExpenses((prev) => [...newItems, ...prev]);
         toast.success(`Despesa ${expenseForm.tipoGasto === 'fixo' ? 'fixa' : 'assinatura'} replicada para ${newItems.length} meses!`);
       } else {
         const id = await createOwnedRecord(COLLECTIONS.CUSTOS, { ...baseRecord, data: expenseForm.data });
         setExpenses((prev) => [
-          { id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, valor },
+          { id, collectionName: COLLECTIONS.CUSTOS, ...expenseForm, categoria: categoriaFinal, valor },
           ...prev,
         ]);
         toast.success('Despesa registrada');
