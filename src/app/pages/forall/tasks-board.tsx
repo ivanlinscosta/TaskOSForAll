@@ -238,7 +238,7 @@ export function ForAllTasksBoard() {
             <div
               key={status}
               className="min-h-[480px] rounded-[28px] bg-[var(--theme-background-secondary)] p-4 shadow-sm"
-              style={{ border: '0.75px solid #EDEAE4' }}
+              style={{ border: '0.75px solid var(--theme-background-secondary-border)' }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleDrop(status)}
             >
@@ -263,7 +263,7 @@ export function ForAllTasksBoard() {
                       onDragStart={() => setDragging(task.id || null)}
                       onDragEnd={() => setDragging(null)}
                       className="cursor-grab rounded-2xl bg-[var(--theme-card)] p-4 shadow-sm transition-all hover:shadow-md"
-                      style={{ border: '0.75px solid #EDEAE4' }}
+                      style={{ border: '0.75px solid var(--theme-background-secondary-border)' }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>

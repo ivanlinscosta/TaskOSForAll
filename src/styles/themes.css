@@ -42,6 +42,7 @@
   --theme-secondary: #1280A8;
   --theme-background: #F4F3EF;
   --theme-background-secondary: rgba(13, 92, 122, 0.06);
+  --theme-background-secondary-border: rgba(13, 92, 122, 0.15);
   --theme-foreground: #061F2A;
   --theme-card: #FFFFFF;
   --theme-card-foreground: #061F2A;
