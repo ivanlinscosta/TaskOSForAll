@@ -539,7 +539,7 @@ export function ForAllFinancePage() {
       faturaId: c.faturaId,
       notas: c.notas,
       _isCartao: c.origem === 'cartao',
-      _isExtrato: c.origem !== 'cartao' && String(c.notas || '').startsWith('Extrato'),
+      _isExtrato: c.origem === 'extrato' || (c.origem !== 'cartao' && String(c.notas || '').toLowerCase().startsWith('extrato')),
     }));
   }, [custos]);
 
@@ -1000,7 +1000,7 @@ export function ForAllFinancePage() {
                     { key: 'fixo', label: 'Fixas', cor: '#F59E0B' },
                     { key: 'assinatura', label: 'Assinaturas', cor: '#A855F7' },
                     { key: 'variavel', label: 'Variáveis', cor: '#EF4444' },
-                    { key: 'extrato', label: 'Extrato', cor: '#8B5CF6' },
+                    { key: 'extrato', label: 'Extrato Bancário', cor: '#8B5CF6' },
                     { key: 'alimentacao', label: 'Alimentação', cor: '#F59E0B' },
                     { key: 'transporte', label: 'Transporte', cor: '#3B82F6' },
                     { key: 'moradia', label: 'Moradia', cor: '#10B981' },
