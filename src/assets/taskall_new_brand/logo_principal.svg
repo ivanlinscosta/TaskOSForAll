@@ -2,6 +2,6 @@
   <rect x="16" y="10" width="100" height="100" rx="26" fill="#0D5C7A"/>
   <circle cx="66" cy="60" r="30" fill="none" stroke="white" stroke-width="10" stroke-linecap="round" stroke-dasharray="162 26" stroke-dashoffset="56"/>
   <path d="M66 46C66 46 70 58 82 60C70 58 66 72 66 72C66 72 62 58 50 60C62 58 66 46 66 46Z" fill="white"/>
-  <text x="134" y="64" font-family="system-ui,-apple-system,sans-serif" font-size="62" font-weight="300" letter-spacing="-2.5" fill="#061F2A">Task<tspan font-weight="700" fill="#0D5C7A">All</tspan></text>
-  <text x="136" y="90" font-family="system-ui,-apple-system,sans-serif" font-size="13" fill="#9A9A9A" letter-spacing="2">SEU ASSISTENTE DE VIDA</text>
+  <text x="134" y="70" font-family="system-ui,-apple-system,sans-serif" font-size="62" font-weight="400" letter-spacing="-2.5" fill="#061F2A">Task<tspan font-weight="700" fill="#0D5C7A">All</tspan></text>
+  <text x="136" y="100" font-family="system-ui,-apple-system,sans-serif" font-size="20" fill="#6B6B6B" letter-spacing="1.5">SEU ASSISTENTE DE VIDA</text>
 </svg>
