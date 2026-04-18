@@ -45,11 +45,8 @@ export default function Header() {
     >
       <div>
         <h1 className="text-base font-bold text-[#061F2A]">
-          Olá, {displayName.split(' ')[0]} 👋
+          Olá, {displayName.split(' ')[0]}, bom te ver por aqui! 👋
         </h1>
-        <p className="text-xs text-[#7A7068]">
-          Seu assistente de vida
-        </p>
       </div>
 
       <div className="flex items-center gap-2">
