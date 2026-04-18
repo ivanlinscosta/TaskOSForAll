@@ -368,6 +368,8 @@ Forneça insights de produtividade e recomendações.`;
 export interface FinancialReportAI {
   resumoExecutivo: string;
   analiseGastos: string;
+  analiseTendencia: string;
+  analiseCategorias: string;
   recomendacoes: Array<{ titulo: string; texto: string; tipo: 'positivo' | 'atencao' | 'acao' }>;
   perspectiva: string;
 }
@@ -391,53 +393,82 @@ export async function generateFinancialReportNarrative(dados: {
   assinaturas: number;
   variaveis: number;
 }): Promise<FinancialReportAI> {
-  const sistemPrompt = `Você é um analista financeiro especialista em finanças pessoais e corporativas.
-Gere um relatório financeiro completo em português, profissional e personalizado.
-Responda APENAS com um JSON válido no formato exato especificado, sem markdown, sem código, apenas o JSON puro.`;
+  const taxaPoupanca = dados.receitas > 0 ? ((dados.saldo / dados.receitas) * 100).toFixed(1) : '0';
+  const relacaoFixoTotal = dados.despesas > 0 ? ((dados.fixos / dados.despesas) * 100).toFixed(1) : '0';
+  const topCat = dados.categorias.slice(0, 5);
 
-  const userPrompt = `Dados financeiros do usuário ${dados.nomeUsuario} (${dados.workspace}) — período: ${dados.periodo}:
+  const sistemPrompt = `Você é um analista financeiro pessoal sênior, especialista em finanças comportamentais e planejamento financeiro.
+Sua missão é gerar um relatório financeiro COMPLETO, DETALHADO e PERSONALIZADO em português brasileiro.
+Use os dados reais fornecidos para fazer uma análise profunda — cite valores e percentuais específicos.
+Seja direto, empático e orientado a ação. Evite respostas genéricas.
+Responda APENAS com o JSON válido solicitado, sem markdown, sem blocos de código, apenas o objeto JSON puro.`;
 
-- Receitas totais: R$ ${dados.receitas.toFixed(2)}
-- Despesas totais: R$ ${dados.despesas.toFixed(2)}
-- Saldo: R$ ${dados.saldo.toFixed(2)}
-- Gasto médio mensal: R$ ${dados.gastoMedio.toFixed(2)}
-- Total investido: R$ ${dados.totalInvestido.toFixed(2)}
-- Perfil investidor: ${dados.perfilInvestidor}
-- Despesas fixas: R$ ${dados.fixos.toFixed(2)}
-- Assinaturas: R$ ${dados.assinaturas.toFixed(2)}
-- Despesas variáveis: R$ ${dados.variaveis.toFixed(2)}
-- Top categorias: ${dados.categorias.slice(0, 5).map(c => `${c.nome} (R$ ${c.valor.toFixed(2)})`).join(', ')}
-- Evolução mensal: ${dados.evolucaoMensal.map(m => `${m.mes}: receitas R$ ${m.receitas.toFixed(2)}, despesas R$ ${m.despesas.toFixed(2)}`).join(' | ')}
+  const userPrompt = `Gere um relatório financeiro detalhado para ${dados.nomeUsuario} com base nos dados abaixo.
 
-Gere o relatório neste JSON:
+=== DADOS FINANCEIROS (${dados.periodo}) ===
+Receitas totais:        R$ ${dados.receitas.toFixed(2)}
+Despesas totais:        R$ ${dados.despesas.toFixed(2)}
+Saldo do período:       R$ ${dados.saldo.toFixed(2)} (${dados.saldo >= 0 ? 'POSITIVO' : 'NEGATIVO'})
+Taxa de poupança:       ${taxaPoupanca}% das receitas
+Gasto médio mensal:     R$ ${dados.gastoMedio.toFixed(2)}
+Total investido:        R$ ${dados.totalInvestido.toFixed(2)}
+Perfil de investidor:   ${dados.perfilInvestidor}
+
+=== COMPOSIÇÃO DAS DESPESAS ===
+Despesas fixas:         R$ ${dados.fixos.toFixed(2)} (${relacaoFixoTotal}% do total)
+Assinaturas:            R$ ${dados.assinaturas.toFixed(2)}
+Despesas variáveis:     R$ ${dados.variaveis.toFixed(2)}
+
+=== TOP CATEGORIAS ===
+${topCat.map((c, i) => `${i + 1}. ${c.nome}: R$ ${c.valor.toFixed(2)} (${dados.despesas > 0 ? ((c.valor / dados.despesas) * 100).toFixed(1) : 0}%)`).join('\n')}
+
+=== EVOLUÇÃO MENSAL ===
+${dados.evolucaoMensal.map(m => `${m.mes}: Receitas R$ ${m.receitas.toFixed(2)} | Despesas R$ ${m.despesas.toFixed(2)} | Saldo R$ ${(m.receitas - m.despesas).toFixed(2)}`).join('\n')}
+
+=== FORMATO DE RESPOSTA (JSON exato) ===
 {
-  "resumoExecutivo": "2-3 parágrafos analisando a saúde financeira geral, destaque pontos fortes e fracos",
-  "analiseGastos": "1-2 parágrafos analisando o perfil de gastos, categorias predominantes e comportamento",
+  "resumoExecutivo": "3 parágrafos completos. P1: diagnóstico geral da saúde financeira com valores reais. P2: análise do saldo e taxa de poupança, comparando com referências saudáveis (20-30%). P3: avaliação da relação entre receitas e despesas e o que isso significa para o futuro financeiro.",
+  "analiseGastos": "2 parágrafos. P1: análise detalhada da composição de gastos (fixos X variáveis X assinaturas), cite os percentuais reais. P2: avaliação do comportamento de gastos e se está adequado ao perfil de renda.",
+  "analiseTendencia": "1 parágrafo analisando a tendência observada mês a mês: o saldo está melhorando, piorando ou estável? Há meses com picos de despesas? O que isso pode indicar?",
+  "analiseCategorias": "1 parágrafo focado nas principais categorias de despesa: quais dominam o orçamento, se estão em linha com o esperado para o perfil e o que pode ser otimizado.",
   "recomendacoes": [
-    { "titulo": "título curto", "texto": "descrição da recomendação", "tipo": "positivo|atencao|acao" },
-    ... (4-5 recomendações)
+    { "titulo": "título curto e específico", "texto": "recomendação de 2-3 frases com valor ou percentual real, ação concreta e benefício esperado", "tipo": "positivo|atencao|acao" }
   ],
-  "perspectiva": "1 parágrafo com perspectiva e próximos passos recomendados"
-}`;
+  "perspectiva": "2 parágrafos. P1: perspectiva financeira para os próximos meses com base nas tendências. P2: 3 próximos passos práticos e priorizados que o usuário deve tomar."
+}
+
+IMPORTANTE: Gere exatamente 5 ou 6 recomendações variando os tipos. Use valores reais do relatório nas recomendações.`;
 
   try {
     const raw = await callGemini(sistemPrompt, [], userPrompt);
-    // Extract JSON even if model wraps in markdown
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON found');
-    return JSON.parse(jsonMatch[0]) as FinancialReportAI;
+    if (!jsonMatch) throw new Error('No JSON found in response');
+    const parsed = JSON.parse(jsonMatch[0]) as FinancialReportAI;
+    // Ensure all fields exist
+    return {
+      resumoExecutivo:   parsed.resumoExecutivo   || '',
+      analiseGastos:     parsed.analiseGastos     || '',
+      analiseTendencia:  parsed.analiseTendencia  || '',
+      analiseCategorias: parsed.analiseCategorias || '',
+      recomendacoes:     parsed.recomendacoes     || [],
+      perspectiva:       parsed.perspectiva       || '',
+    };
   } catch (err) {
     console.error('Gemini report error:', err);
-    // Fallback mock
+    const saldoPos = dados.saldo >= 0;
     return {
-      resumoExecutivo: `O período analisado apresenta receitas de R$ ${dados.receitas.toFixed(2)} e despesas de R$ ${dados.despesas.toFixed(2)}, resultando em um saldo ${dados.saldo >= 0 ? 'positivo' : 'negativo'} de R$ ${Math.abs(dados.saldo).toFixed(2)}. ${dados.saldo >= 0 ? 'O controle financeiro está sendo bem executado.' : 'É importante revisar os gastos para equilibrar o orçamento.'}`,
-      analiseGastos: `Os gastos fixos representam R$ ${dados.fixos.toFixed(2)}, assinaturas R$ ${dados.assinaturas.toFixed(2)} e despesas variáveis R$ ${dados.variaveis.toFixed(2)}. ${dados.categorias[0] ? `A categoria com maior impacto é ${dados.categorias[0].nome}.` : ''}`,
+      resumoExecutivo: `No período analisado, ${dados.nomeUsuario} registrou receitas de R$ ${dados.receitas.toFixed(2)} e despesas de R$ ${dados.despesas.toFixed(2)}, resultando em um saldo ${saldoPos ? 'positivo' : 'negativo'} de R$ ${Math.abs(dados.saldo).toFixed(2)}.\n\nA taxa de poupança calculada é de ${taxaPoupanca}%, ${Number(taxaPoupanca) >= 20 ? 'acima do mínimo recomendado de 20%, o que demonstra bom disciplina financeira.' : 'abaixo do mínimo recomendado de 20%. Recomenda-se revisar os gastos para ampliar a margem de economia.'}\n\n${saldoPos ? 'O controle financeiro está sendo executado de forma satisfatória, com receitas superando despesas no período.' : 'As despesas superam as receitas no período, sinalizando a necessidade de ajustes no orçamento para evitar endividamento.'}`,
+      analiseGastos: `As despesas fixas representam R$ ${dados.fixos.toFixed(2)} (${relacaoFixoTotal}% do total), assinaturas R$ ${dados.assinaturas.toFixed(2)} e despesas variáveis R$ ${dados.variaveis.toFixed(2)}. ${topCat[0] ? `A categoria mais expressiva é ${topCat[0].nome}, com R$ ${topCat[0].valor.toFixed(2)}.` : ''}\n\nUm percentual de gastos fixos acima de 60% pode comprometer a flexibilidade financeira. ${Number(relacaoFixoTotal) > 60 ? 'Avalie a possibilidade de renegociar contratos fixos para ganhar mais flexibilidade.' : 'A composição de gastos fixos está em nível razoável.'}`,
+      analiseTendencia: dados.evolucaoMensal.length > 1 ? `Com base nos dados mensais disponíveis, a evolução financeira mostra variação entre receitas e despesas. Acompanhe mês a mês para identificar padrões sazonais e planejar meses com maior pressão financeira.` : 'Com dados de apenas um período, não é possível identificar tendências. Registre suas finanças mensalmente para uma análise mais completa.',
+      analiseCategorias: topCat.length > 0 ? `As categorias ${topCat.slice(0, 3).map(c => c.nome).join(', ')} concentram a maior parte dos gastos. Revisar os maiores itens de cada categoria é o caminho mais eficiente para reduzir despesas sem impactar a qualidade de vida.` : 'Categorize suas despesas para obter uma análise detalhada da distribuição dos seus gastos.',
       recomendacoes: [
-        { titulo: 'Controle de gastos variáveis', texto: 'Monitore suas despesas variáveis mensalmente para identificar oportunidades de economia.', tipo: 'acao' },
-        { titulo: 'Reserva de emergência', texto: 'Mantenha uma reserva equivalente a 3-6 meses de despesas fixas para imprevistos.', tipo: 'atencao' },
-        { titulo: 'Investimentos regulares', texto: 'Considere aportar mensalmente em investimentos para construir patrimônio a longo prazo.', tipo: 'positivo' },
+        { titulo: 'Ampliar taxa de poupança', texto: `Sua taxa de poupança atual é de ${taxaPoupanca}%. Metas de 20-30% das receitas são consideradas saudáveis. Pequenos cortes em gastos variáveis podem fazer grande diferença no longo prazo.`, tipo: Number(taxaPoupanca) >= 20 ? 'positivo' : 'atencao' },
+        { titulo: 'Revisar assinaturas ativas', texto: `Você possui R$ ${dados.assinaturas.toFixed(2)} em assinaturas. Liste todos os serviços e avalie quais são realmente utilizados — assinaturas esquecidas podem representar desperdício mensal.`, tipo: 'acao' },
+        { titulo: 'Fundo de emergência', texto: 'Mantenha um fundo equivalente a 3-6 meses das suas despesas fixas em aplicações de liquidez diária, como CDB DI ou Tesouro Selic.', tipo: 'atencao' },
+        { titulo: 'Aportes mensais em investimentos', texto: `Com total investido de R$ ${dados.totalInvestido.toFixed(2)}, estabeleça um aporte mensal fixo alinhado ao seu perfil ${dados.perfilInvestidor} para crescimento patrimonial consistente.`, tipo: 'acao' },
+        { titulo: 'Controle os gastos variáveis', texto: `As despesas variáveis de R$ ${dados.variaveis.toFixed(2)} são onde há mais espaço de manobra. Use o TaskAll para registrar e revisar esses gastos semanalmente.`, tipo: 'acao' },
       ],
-      perspectiva: 'Continue monitorando suas finanças pelo TaskAll para construir uma visão completa e tomar decisões mais assertivas ao longo do tempo.',
+      perspectiva: `Com base nos dados do período, ${saldoPos ? 'a tendência financeira é positiva e com ajustes estratégicos é possível ampliar a margem de poupança e acelerar o crescimento patrimonial.' : 'é necessário reequilibrar receitas e despesas com urgência para evitar comprometimento financeiro crescente.'}\n\nPróximos passos recomendados: (1) Revisar todas as assinaturas e cancelar as não utilizadas; (2) Definir um valor fixo mensal para investimentos automáticos; (3) Acompanhar semanalmente as despesas variáveis pelo TaskAll para identificar desvios antes do fim do mês.`,
     };
   }
 }
