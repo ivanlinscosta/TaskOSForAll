@@ -46,6 +46,7 @@ import { CATEGORIAS_ORCAMENTO_LABELS, listarViagens } from '../../../services/vi
 import { listarCustos, deletarCusto, atualizarCusto } from '../../../services/custos-service';
 import { toast } from 'sonner';
 import { CartaoTab } from './CartaoTab';
+import { FinancialReportExporter, type ReportData } from '../../components/finance/FinancialReportExporter';
 import { InvestmentTab } from '../../components/finance/investments/InvestmentTab';
 import { ImportarFaturaDialog } from '../../components/ImportarFaturaDialog';
 import { ImportarExtratoDialog } from '../../components/ImportarExtratoDialog';
@@ -674,6 +675,34 @@ export function ForAllFinancePage() {
 
   const workspaceLabel = workspace === 'work' ? 'Trabalho' : 'Vida pessoal';
 
+  // Data for the PDF report
+  const reportData: ReportData = useMemo(() => {
+    const periodoLabel = monthFilters.size === 0
+      ? 'Todos os períodos'
+      : monthFilters.size === 1
+        ? monthLabelFromKey([...monthFilters][0])
+        : `${[...monthFilters].map(monthLabelFromKey).join(', ')}`;
+
+    return {
+      nomeUsuario: userProfile?.nome || user?.displayName || 'Usuário',
+      workspace,
+      periodo: periodoLabel,
+      receitas: revenueTotal,
+      despesas: expenseTotal,
+      saldo: balance,
+      gastoMedio: gastoMedioMensal,
+      totalInvestido: totalInvestidoReal,
+      perfilInvestidor: userProfile?.financas?.perfilInvestidor || 'indefinido',
+      fixos: fixedTotal,
+      assinaturas: subscriptionTotal,
+      variaveis: variableTotal,
+      categorias: expensePie.map((e) => ({ nome: e.name, valor: e.value, color: e.color })),
+      evolucaoMensal: chartData,
+    };
+  }, [monthFilters, userProfile, workspace, revenueTotal, expenseTotal, balance,
+      gastoMedioMensal, totalInvestidoReal, fixedTotal, subscriptionTotal,
+      variableTotal, expensePie, chartData, user]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -693,6 +722,7 @@ export function ForAllFinancePage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <FinancialReportExporter data={reportData} />
           <Button variant="outline" className="gap-2" onClick={() => setImportarFaturaOpen(true)}>
             <CreditCard className="h-4 w-4" />
             Importar Fatura

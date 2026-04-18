@@ -365,6 +365,83 @@ Forneça insights de produtividade e recomendações.`;
   );
 }
 
+export interface FinancialReportAI {
+  resumoExecutivo: string;
+  analiseGastos: string;
+  recomendacoes: Array<{ titulo: string; texto: string; tipo: 'positivo' | 'atencao' | 'acao' }>;
+  perspectiva: string;
+}
+
+/**
+ * Gera o conteúdo narrativo do relatório financeiro via Gemini
+ */
+export async function generateFinancialReportNarrative(dados: {
+  nomeUsuario: string;
+  workspace: string;
+  periodo: string;
+  receitas: number;
+  despesas: number;
+  saldo: number;
+  gastoMedio: number;
+  totalInvestido: number;
+  perfilInvestidor: string;
+  categorias: Array<{ nome: string; valor: number }>;
+  evolucaoMensal: Array<{ mes: string; receitas: number; despesas: number }>;
+  fixos: number;
+  assinaturas: number;
+  variaveis: number;
+}): Promise<FinancialReportAI> {
+  const sistemPrompt = `Você é um analista financeiro especialista em finanças pessoais e corporativas.
+Gere um relatório financeiro completo em português, profissional e personalizado.
+Responda APENAS com um JSON válido no formato exato especificado, sem markdown, sem código, apenas o JSON puro.`;
+
+  const userPrompt = `Dados financeiros do usuário ${dados.nomeUsuario} (${dados.workspace}) — período: ${dados.periodo}:
+
+- Receitas totais: R$ ${dados.receitas.toFixed(2)}
+- Despesas totais: R$ ${dados.despesas.toFixed(2)}
+- Saldo: R$ ${dados.saldo.toFixed(2)}
+- Gasto médio mensal: R$ ${dados.gastoMedio.toFixed(2)}
+- Total investido: R$ ${dados.totalInvestido.toFixed(2)}
+- Perfil investidor: ${dados.perfilInvestidor}
+- Despesas fixas: R$ ${dados.fixos.toFixed(2)}
+- Assinaturas: R$ ${dados.assinaturas.toFixed(2)}
+- Despesas variáveis: R$ ${dados.variaveis.toFixed(2)}
+- Top categorias: ${dados.categorias.slice(0, 5).map(c => `${c.nome} (R$ ${c.valor.toFixed(2)})`).join(', ')}
+- Evolução mensal: ${dados.evolucaoMensal.map(m => `${m.mes}: receitas R$ ${m.receitas.toFixed(2)}, despesas R$ ${m.despesas.toFixed(2)}`).join(' | ')}
+
+Gere o relatório neste JSON:
+{
+  "resumoExecutivo": "2-3 parágrafos analisando a saúde financeira geral, destaque pontos fortes e fracos",
+  "analiseGastos": "1-2 parágrafos analisando o perfil de gastos, categorias predominantes e comportamento",
+  "recomendacoes": [
+    { "titulo": "título curto", "texto": "descrição da recomendação", "tipo": "positivo|atencao|acao" },
+    ... (4-5 recomendações)
+  ],
+  "perspectiva": "1 parágrafo com perspectiva e próximos passos recomendados"
+}`;
+
+  try {
+    const raw = await callGemini(sistemPrompt, [], userPrompt);
+    // Extract JSON even if model wraps in markdown
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found');
+    return JSON.parse(jsonMatch[0]) as FinancialReportAI;
+  } catch (err) {
+    console.error('Gemini report error:', err);
+    // Fallback mock
+    return {
+      resumoExecutivo: `O período analisado apresenta receitas de R$ ${dados.receitas.toFixed(2)} e despesas de R$ ${dados.despesas.toFixed(2)}, resultando em um saldo ${dados.saldo >= 0 ? 'positivo' : 'negativo'} de R$ ${Math.abs(dados.saldo).toFixed(2)}. ${dados.saldo >= 0 ? 'O controle financeiro está sendo bem executado.' : 'É importante revisar os gastos para equilibrar o orçamento.'}`,
+      analiseGastos: `Os gastos fixos representam R$ ${dados.fixos.toFixed(2)}, assinaturas R$ ${dados.assinaturas.toFixed(2)} e despesas variáveis R$ ${dados.variaveis.toFixed(2)}. ${dados.categorias[0] ? `A categoria com maior impacto é ${dados.categorias[0].nome}.` : ''}`,
+      recomendacoes: [
+        { titulo: 'Controle de gastos variáveis', texto: 'Monitore suas despesas variáveis mensalmente para identificar oportunidades de economia.', tipo: 'acao' },
+        { titulo: 'Reserva de emergência', texto: 'Mantenha uma reserva equivalente a 3-6 meses de despesas fixas para imprevistos.', tipo: 'atencao' },
+        { titulo: 'Investimentos regulares', texto: 'Considere aportar mensalmente em investimentos para construir patrimônio a longo prazo.', tipo: 'positivo' },
+      ],
+      perspectiva: 'Continue monitorando suas finanças pelo TaskAll para construir uma visão completa e tomar decisões mais assertivas ao longo do tempo.',
+    };
+  }
+}
+
 /**
  * Responde perguntas sobre a plataforma TaskAll
  */
