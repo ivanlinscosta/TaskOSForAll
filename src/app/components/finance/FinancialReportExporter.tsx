@@ -136,17 +136,18 @@ function PageFooterBar({ page, total = 4, name, periodo }: { page: number; total
   return (
     <div style={{
       marginTop: 'auto',
-      background: B.primary,
+      background: B.bg,
+      border: `1px solid ${B.border}`,
       borderRadius: 10,
       padding: '10px 20px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
     }}>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>
-        <span style={{ fontWeight: 700, color: '#fff' }}>TaskAll</span> · {name} · {periodo}
+      <span style={{ fontSize: 10, color: B.muted }}>
+        <span style={{ fontWeight: 700, color: B.primary }}>TaskAll</span> · {name} · {periodo}
       </span>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>
+      <span style={{ fontSize: 10, color: B.muted }}>
         Página {page} de {total} · Análise não constitui consultoria financeira
       </span>
     </div>
@@ -156,69 +157,94 @@ function PageFooterBar({ page, total = 4, name, periodo }: { page: number; total
 // ─── PAGE 1 — Cover ──────────────────────────────────────────────────────────
 
 function PageCover({ data, generatedAt }: { data: ReportData; generatedAt: string }) {
+  const saldoPositivo = data.saldo >= 0;
   return (
     <div id="report-page-0" style={{
       width: PW, height: PH, boxSizing: 'border-box', overflow: 'hidden',
-      background: `linear-gradient(145deg, ${B.primaryDark} 0%, ${B.primary} 45%, ${B.primaryLight} 100%)`,
+      background: '#FFFFFF',
       display: 'flex', flexDirection: 'column',
     }}>
+      {/* Top accent bar */}
+      <div style={{ height: 6, background: `linear-gradient(90deg, ${B.primaryDark}, ${B.primaryLight})` }} />
+
       {/* Header */}
-      <div style={{ padding: `48px ${PAD}px 0` }}>
-        <img src={logoPrincipal} alt="TaskAll" style={{ height: 36, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+      <div style={{ padding: `36px ${PAD}px 0`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <img src={logoPrincipal} alt="TaskAll" style={{ height: 34, objectFit: 'contain' }} />
+        <span style={{ fontSize: 10, color: B.muted, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          Relatório Financeiro
+        </span>
       </div>
 
+      {/* Divider */}
+      <div style={{ height: 1, background: B.border, margin: `28px ${PAD}px 0` }} />
+
       {/* Hero text */}
-      <div style={{ padding: `56px ${PAD}px 0`, flex: 1 }}>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, letterSpacing: 3.5, textTransform: 'uppercase', margin: '0 0 16px' }}>
-          Relatório Financeiro
-        </p>
-        <h1 style={{ color: '#fff', fontSize: 44, fontWeight: 900, lineHeight: 1.1, margin: '0 0 14px' }}>
-          Análise Financeira<br />Personalizada
+      <div style={{ padding: `44px ${PAD}px 0`, flex: 1 }}>
+        <h1 style={{ color: B.text, fontSize: 42, fontWeight: 900, lineHeight: 1.1, margin: '0 0 12px' }}>
+          Análise Financeira<br />
+          <span style={{ color: B.primary }}>Personalizada</span>
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15, margin: 0 }}>
+        <p style={{ color: B.muted, fontSize: 15, margin: '0 0 44px' }}>
           {data.nomeUsuario} · {data.workspace === 'work' ? 'Trabalho' : 'Vida Pessoal'}
         </p>
 
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.18)', margin: '44px 0 36px' }} />
-
-        {/* KPI grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 14 }}>
+        {/* KPI grid — row 1 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 12 }}>
           {[
-            { l: 'Receitas totais',   v: data.receitas,  sign: '' },
-            { l: 'Despesas totais',   v: data.despesas,  sign: '' },
-            { l: 'Saldo do período',  v: data.saldo,     sign: data.saldo >= 0 ? '+' : '−' },
+            { l: 'Receitas totais',  v: data.receitas, cor: B.green,                                sign: '' },
+            { l: 'Despesas totais',  v: data.despesas, cor: B.red,                                  sign: '' },
+            { l: 'Saldo do período', v: data.saldo,    cor: saldoPositivo ? B.green : B.red, sign: saldoPositivo ? '+' : '−' },
           ].map(k => (
-            <div key={k.l} style={{ background: 'rgba(255,255,255,0.13)', borderRadius: 14, padding: '18px 20px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 0.9 }}>{k.l}</p>
-              <p style={{ color: '#fff', fontSize: 22, fontWeight: 800, margin: 0 }}>{k.sign}{formatCurrency(Math.abs(k.v))}</p>
+            <div key={k.l} style={{
+              background: B.bg, border: `1px solid ${B.border}`,
+              borderRadius: 14, padding: '18px 20px',
+              borderTop: `3px solid ${k.cor}`,
+            }}>
+              <p style={{ color: B.muted, fontSize: 10, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 0.9 }}>{k.l}</p>
+              <p style={{ color: k.cor, fontSize: 22, fontWeight: 800, margin: 0 }}>{k.sign}{formatCurrency(Math.abs(k.v))}</p>
             </div>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+
+        {/* KPI grid — row 2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
           {[
-            { l: 'Gasto médio mensal', v: data.gastoMedio },
-            { l: 'Total investido',    v: data.totalInvestido },
-            { l: 'Despesas variáveis', v: data.variaveis },
+            { l: 'Gasto médio / mês', v: data.gastoMedio,      cor: B.text    },
+            { l: 'Total investido',   v: data.totalInvestido,   cor: B.primary },
+            { l: 'Despesas variáveis',v: data.variaveis,        cor: B.amber   },
           ].map(k => (
-            <div key={k.l} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 20px' }}>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 6px' }}>{k.l}</p>
-              <p style={{ color: '#fff', fontSize: 17, fontWeight: 700, margin: 0 }}>{formatCurrency(k.v)}</p>
+            <div key={k.l} style={{
+              background: B.bg, border: `1px solid ${B.border}`,
+              borderRadius: 14, padding: '14px 20px',
+            }}>
+              <p style={{ color: B.muted, fontSize: 10, margin: '0 0 6px' }}>{k.l}</p>
+              <p style={{ color: k.cor, fontSize: 17, fontWeight: 700, margin: 0 }}>{formatCurrency(k.v)}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Cover footer */}
-      <div style={{ padding: `24px ${PAD}px 36px`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div style={{
+        margin: `28px ${PAD}px 0`,
+        background: B.bg, border: `1px solid ${B.border}`,
+        borderRadius: 12, padding: '14px 20px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 36,
+      }}>
         <div>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 1 }}>Período</p>
-          <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{data.periodo}</p>
+          <p style={{ color: B.muted, fontSize: 10, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 1 }}>Período</p>
+          <p style={{ color: B.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{data.periodo}</p>
         </div>
+        <div style={{ width: 1, height: 28, background: B.border }} />
         <div style={{ textAlign: 'right' }}>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 1 }}>Gerado em</p>
-          <p style={{ color: '#fff', fontSize: 13, fontWeight: 600, margin: 0 }}>{generatedAt}</p>
+          <p style={{ color: B.muted, fontSize: 10, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 1 }}>Gerado em</p>
+          <p style={{ color: B.text, fontSize: 13, fontWeight: 600, margin: 0 }}>{generatedAt}</p>
         </div>
       </div>
+
+      {/* Bottom accent bar */}
+      <div style={{ height: 4, background: `linear-gradient(90deg, ${B.primaryDark}, ${B.primaryLight})` }} />
     </div>
   );
 }
@@ -495,7 +521,7 @@ export function FinancialReportExporter({ data }: { data: ReportData }) {
             scale: 2,
             useCORS: true,
             allowTaint: true,
-            backgroundColor: i === 0 ? B.primaryDark : B.bg,
+            backgroundColor: i === 0 ? '#FFFFFF' : B.bg,
             logging: false,
             width: PW,
             height: PH,
