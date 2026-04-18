@@ -12,42 +12,69 @@ import { useAuth } from '../../../lib/auth-context';
 import { listWorkspaceEntity } from '../../../services/forall-data-service';
 import { listarViagens } from '../../../services/viagens-service';
 import { listarTarefasPessoais } from '../../../services/tarefas-pessoais-service';
+import { verificarEventosProximos } from '../../../services/notifications-service';
 
 type EventItem = {
   id: string;
   title: string;
   description?: string;
   date: Date;
-  type: 'reuniao' | 'tarefa' | 'viagem' | 'google' | 'apple';
+  type: 'reuniao' | 'tarefa' | 'viagem' | 'google' | 'apple' | 'feriado';
 };
 
 const TYPE_META: Record<EventItem['type'], { label: string; badgeClass: string; cardClass: string }> = {
-  reuniao: {
-    label: 'Reunião',
-    badgeClass: 'bg-blue-100 text-blue-700',
-    cardClass: 'border-blue-200 bg-blue-500 text-white',
-  },
-  tarefa: {
-    label: 'Prazo',
-    badgeClass: 'bg-orange-100 text-orange-700',
-    cardClass: 'border-orange-200 bg-orange-500 text-white',
-  },
-  viagem: {
-    label: 'Viagem',
-    badgeClass: 'bg-violet-100 text-violet-700',
-    cardClass: 'border-violet-200 bg-violet-500 text-white',
-  },
-  google: {
-    label: 'Google',
-    badgeClass: 'bg-emerald-100 text-emerald-700',
-    cardClass: 'border-emerald-200 bg-emerald-500 text-white',
-  },
-  apple: {
-    label: 'Apple',
-    badgeClass: 'bg-gray-100 text-gray-700',
-    cardClass: 'border-gray-200 bg-gray-700 text-white',
-  },
+  reuniao:  { label: 'Reunião',  badgeClass: 'bg-blue-100 text-blue-700',   cardClass: 'border-blue-200 bg-blue-500 text-white' },
+  tarefa:   { label: 'Prazo',    badgeClass: 'bg-orange-100 text-orange-700', cardClass: 'border-orange-200 bg-orange-500 text-white' },
+  viagem:   { label: 'Viagem',   badgeClass: 'bg-violet-100 text-violet-700', cardClass: 'border-violet-200 bg-violet-500 text-white' },
+  google:   { label: 'Google',   badgeClass: 'bg-emerald-100 text-emerald-700', cardClass: 'border-emerald-200 bg-emerald-500 text-white' },
+  apple:    { label: 'Apple',    badgeClass: 'bg-gray-100 text-gray-700',    cardClass: 'border-gray-200 bg-gray-700 text-white' },
+  feriado:  { label: 'Feriado',  badgeClass: 'bg-red-100 text-red-700',      cardClass: 'border-red-200 bg-red-500 text-white' },
 };
+
+// ── Brazilian holidays ────────────────────────────────────────────────────────
+function calcularPascoa(year: number): Date {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function getFeriadosBrasileiros(year: number): EventItem[] {
+  const d = (m: number, day: number) => new Date(year, m - 1, day);
+  const add = (base: Date, days: number) => new Date(base.getTime() + days * 864e5);
+  const pascoa = calcularPascoa(year);
+
+  const fixed: [Date, string][] = [
+    [d(1, 1),   'Confraternização Universal'],
+    [d(4, 21),  'Tiradentes'],
+    [d(5, 1),   'Dia do Trabalho'],
+    [d(9, 7),   'Independência do Brasil'],
+    [d(10, 12), 'Nossa Sra. Aparecida'],
+    [d(11, 2),  'Finados'],
+    [d(11, 15), 'Proclamação da República'],
+    [d(11, 20), 'Consciência Negra'],
+    [d(12, 25), 'Natal'],
+  ];
+
+  const variable: [Date, string][] = [
+    [add(pascoa, -48), 'Carnaval (Segunda)'],
+    [add(pascoa, -47), 'Carnaval (Terça)'],
+    [add(pascoa, -2),  'Sexta-feira Santa'],
+    [pascoa,           'Páscoa'],
+    [add(pascoa, 60),  'Corpus Christi'],
+  ];
+
+  return [...fixed, ...variable].map(([date, title], i) => ({
+    id: `feriado-${year}-${i}`,
+    title,
+    date,
+    type: 'feriado' as const,
+  }));
+}
 
 function parseICS(text: string): EventItem[] {
   const events: EventItem[] = [];
@@ -233,7 +260,16 @@ export function ForAllCommitmentsPage() {
         }
       }
 
-      setEvents(normalized.sort((a, b) => a.date.getTime() - b.date.getTime()));
+      // Feriados brasileiros (ano atual e próximo)
+      const year = new Date().getFullYear();
+      const feriados = [...getFeriadosBrasileiros(year), ...getFeriadosBrasileiros(year + 1)];
+      normalized.push(...feriados);
+
+      const sorted = normalized.sort((a, b) => a.date.getTime() - b.date.getTime());
+      setEvents(sorted);
+
+      // Notificações de proximidade (exceto feriados)
+      verificarEventosProximos(user.uid, sorted.filter(e => e.type !== 'feriado'));
     } finally {
       setIsLoading(false);
     }
@@ -369,6 +405,7 @@ export function ForAllCommitmentsPage() {
         <Badge className={TYPE_META.reuniao.badgeClass}>Reuniões</Badge>
         <Badge className={TYPE_META.tarefa.badgeClass}>Prazos</Badge>
         <Badge className={TYPE_META.viagem.badgeClass}>Viagens</Badge>
+        <Badge className={TYPE_META.feriado.badgeClass}>Feriados BR</Badge>
         {gcalConnected && <Badge className={TYPE_META.google.badgeClass}>Google Calendar</Badge>}
         {appleImported && <Badge className={TYPE_META.apple.badgeClass}>Apple Calendar</Badge>}
       </div>

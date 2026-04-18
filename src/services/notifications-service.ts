@@ -6,6 +6,7 @@ import {
   doc,
   query,
   where,
+  getDocs,
   onSnapshot,
   Timestamp
 } from 'firebase/firestore';
@@ -33,6 +34,7 @@ export interface Notificacao {
   lida: boolean;
   contexto?: 'fiap' | 'itau' | 'pessoal';
   userId: string;
+  refId?: string;
 }
 
 /**
@@ -100,6 +102,54 @@ export async function marcarTodasComoLidas(notificacoes: Notificacao[]) {
  */
 export async function deletarNotificacao(id: string) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+/**
+ * Verifica eventos da agenda próximos (hoje ou em até 3 dias)
+ * e cria notificações no hub, evitando duplicatas via refId.
+ */
+export async function verificarEventosProximos(
+  userId: string,
+  eventos: Array<{ id: string; title: string; date: Date; type: string }>,
+) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const em3dias = new Date(hoje.getTime() + 3 * 24 * 864e5);
+
+  // Busca refIds já existentes para evitar duplicatas
+  const q = query(collection(db, COLLECTION), where('userId', '==', userId), where('refId', '!=', ''));
+  const snap = await getDocs(q).catch(() => null);
+  const existingRefs = new Set(snap?.docs.map(d => d.data().refId as string) ?? []);
+
+  const tipoMap: Record<string, TipoNotificacao> = {
+    reuniao: 'reuniao',
+    tarefa: 'tarefa',
+    viagem: 'viagem',
+    google: 'reuniao',
+    apple: 'reuniao',
+  };
+
+  for (const ev of eventos) {
+    const evDate = new Date(ev.date);
+    evDate.setHours(0, 0, 0, 0);
+    if (evDate < hoje || evDate > em3dias) continue;
+
+    const refId = `event-proximity-${ev.id}`;
+    if (existingRefs.has(refId)) continue;
+
+    const diffDays = Math.round((evDate.getTime() - hoje.getTime()) / 864e5);
+    const quando = diffDays === 0 ? 'hoje' : diffDays === 1 ? 'amanhã' : `em ${diffDays} dias`;
+    const tipo: TipoNotificacao = tipoMap[ev.type] ?? 'sistema';
+
+    notificarSilencioso({
+      titulo: `Compromisso ${quando}`,
+      mensagem: `"${ev.title}" — ${evDate.toLocaleDateString('pt-BR')}`,
+      tipo,
+      lida: false,
+      userId,
+      refId,
+    });
+  }
 }
 
 /**
