@@ -44,7 +44,7 @@ export interface LevelInfo {
 export const LEVELS: LevelInfo[] = [
   { level: 1,  title: 'Iniciante',    minXP: 0,    maxXP: 100,    color: '#94A3B8', emoji: '🌱' },
   { level: 2,  title: 'Aprendiz',     minXP: 100,  maxXP: 300,    color: '#60A5FA', emoji: '📚' },
-  { level: 3,  title: 'Praticante',   minXP: 300,  maxXP: 600,    color: '#34D399', emoji: '⚡' },
+  { level: 3,  title: 'Praticante',   minXP: 300,  maxXP: 600,    color: '#2AABCF', emoji: '⚡' },
   { level: 4,  title: 'Desenvolvido', minXP: 600,  maxXP: 1000,   color: '#A78BFA', emoji: '🚀' },
   { level: 5,  title: 'Avançado',     minXP: 1000, maxXP: 1500,   color: '#F59E0B', emoji: '🔥' },
   { level: 6,  title: 'Expert',       minXP: 1500, maxXP: 2200,   color: '#F97316', emoji: '💎' },

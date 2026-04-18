@@ -5,6 +5,7 @@ import { useAuth } from '../../../lib/auth-context';
 import { cn } from '../../../lib/utils';
 import { MAIN_MENU } from '../../../lib/taskos-forall';
 import { IconMetas } from '../brand/BrandIcons';
+import logoPrincipal from '../../../assets/taskall_new_brand/logo_principal.svg';
 import symbol from '../../../assets/taskall_new_brand/symbol_32.svg';
 
 export default function AppSidebar() {
@@ -24,51 +25,47 @@ export default function AppSidebar() {
   return (
     <aside
       className={cn(
-        'relative sticky top-0 flex h-screen flex-col transition-all duration-300',
-        sidebarCollapsed ? 'w-[68px]' : 'w-[240px]',
+        'sticky top-0 flex h-screen flex-col transition-all duration-300',
+        sidebarCollapsed ? 'w-[72px]' : 'w-[240px]',
       )}
-      style={{ background: '#0D5C7A' }}
+      style={{ background: '#FFFFFF', borderRight: '1px solid #EDEAE4' }}
     >
       {/* Logo */}
       <div
         className="flex h-[72px] items-center justify-between"
-        style={{
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          padding: sidebarCollapsed ? '0 12px' : '0 16px',
-        }}
+        style={{ borderBottom: '1px solid #EDEAE4', padding: sidebarCollapsed ? '0 16px' : '0 16px' }}
       >
-        <div className={cn('flex items-center gap-3', sidebarCollapsed && 'w-full justify-center')}>
-          <img src={symbol} alt="TaskAll" className="h-8 w-8 flex-shrink-0" />
-          {!sidebarCollapsed && (
-            <div className="min-w-0 leading-tight">
-              <span className="block text-[17px] font-bold tracking-tight text-white">TaskAll</span>
-              <span className="block text-[11px] text-white/50">Seu assistente de vida</span>
-            </div>
-          )}
-        </div>
-        {!sidebarCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-white/10"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
-            aria-label="Recolher"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+        {sidebarCollapsed ? (
+          <>
+            <img src={symbol} alt="TaskAll" className="h-8 w-8 flex-shrink-0" />
+            <button
+              onClick={toggleSidebar}
+              className="ml-1 rounded-lg p-1 transition-colors hover:bg-[#EBF2F5]"
+              style={{ color: '#7A7068' }}
+              aria-label="Expandir"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <img
+              src={logoPrincipal}
+              alt="TaskAll"
+              className="h-10 w-auto object-contain object-left"
+              style={{ maxWidth: '160px' }}
+            />
+            <button
+              onClick={toggleSidebar}
+              className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-[#EBF2F5]"
+              style={{ color: '#7A7068' }}
+              aria-label="Recolher"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          </>
         )}
       </div>
-
-      {/* Expand button — shown outside aside edge when collapsed */}
-      {sidebarCollapsed && (
-        <button
-          onClick={toggleSidebar}
-          className="absolute -right-3 top-[28px] z-10 flex h-6 w-6 items-center justify-center rounded-full border transition-colors hover:bg-[#1280A8]"
-          style={{ background: '#0D5C7A', borderColor: 'rgba(255,255,255,0.25)', color: '#fff' }}
-          aria-label="Expandir"
-        >
-          <ChevronRight className="h-3 w-3" />
-        </button>
-      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -87,21 +84,28 @@ export default function AppSidebar() {
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
                   sidebarCollapsed && 'justify-center',
-                  isActive ? 'bg-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white',
+                  !isActive && 'hover:bg-[#EBF2F5] hover:text-[#0D5C7A]',
                 )}
-                style={isActive ? { color: '#0D5C7A' } : undefined}
+                style={
+                  isActive
+                    ? { background: '#0D5C7A', color: '#FFFFFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(13,92,122,0.2)' }
+                    : { color: '#3D3530', borderRadius: '12px' }
+                }
               >
                 <Icon
-                  color={isActive ? '#0D5C7A' : 'rgba(255,255,255,0.6)'}
-                  size={22}
+                  color={isActive ? '#FFFFFF' : '#7A7068'}
+                  size={20}
                   className="flex-shrink-0"
                 />
                 {!sidebarCollapsed && (
                   <div className="min-w-0">
-                    <span className={cn('block text-[13px] font-medium', isActive ? 'text-[#0D5C7A]' : 'text-white/90')}>
+                    <span className="block text-[13px] font-medium">
                       {item.label}
                     </span>
-                    <span className={cn('block truncate text-[11px]', isActive ? 'text-[#0D5C7A]/60' : 'text-white/40')}>
+                    <span
+                      className="block truncate text-[11px]"
+                      style={{ color: isActive ? 'rgba(255,255,255,0.65)' : '#B0A8A0' }}
+                    >
                       {item.description}
                     </span>
                   </div>
@@ -119,15 +123,21 @@ export default function AppSidebar() {
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
                   sidebarCollapsed && 'justify-center',
-                  isActive ? 'bg-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white',
+                  !isActive && 'hover:bg-[#EBF2F5] hover:text-[#0D5C7A]',
                 )}
-                style={isActive ? { color: '#0D5C7A' } : undefined}
+                style={
+                  isActive
+                    ? { background: '#0D5C7A', color: '#FFFFFF', borderRadius: '12px', boxShadow: '0 2px 8px rgba(13,92,122,0.2)' }
+                    : { color: '#3D3530', borderRadius: '12px' }
+                }
               >
-                <IconMetas color={isActive ? '#0D5C7A' : 'rgba(255,255,255,0.6)'} size={22} className="flex-shrink-0" />
+                <IconMetas color={isActive ? '#FFFFFF' : '#7A7068'} size={20} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <div className="min-w-0">
-                    <span className={cn('block text-[13px] font-medium', isActive ? 'text-[#0D5C7A]' : 'text-white/90')}>Vagas Para Mim</span>
-                    <span className={cn('block truncate text-[11px]', isActive ? 'text-[#0D5C7A]/60' : 'text-white/40')}>Vagas recomendadas com IA</span>
+                    <span className="block text-[13px] font-medium">Vagas Para Mim</span>
+                    <span className="block truncate text-[11px]" style={{ color: isActive ? 'rgba(255,255,255,0.65)' : '#B0A8A0' }}>
+                      Vagas recomendadas com IA
+                    </span>
                   </div>
                 )}
               </Link>
@@ -140,19 +150,19 @@ export default function AppSidebar() {
       {!sidebarCollapsed && (
         <div
           className="flex items-center gap-3 px-4 py-4"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ borderTop: '1px solid #EDEAE4' }}
         >
           <div
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
-            style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+            style={{ background: '#0D5C7A' }}
           >
             {initials || 'U'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold text-white">
+            <p className="truncate text-[13px] font-semibold text-[#061F2A]">
               {userProfile?.nome || user?.displayName || user?.email?.split('@')[0] || 'Usuário'}
             </p>
-            <p className="truncate text-[11px] text-white/50">{role || 'Premium'}</p>
+            <p className="truncate text-[11px]" style={{ color: '#0D5C7A' }}>{role || 'Premium'}</p>
           </div>
         </div>
       )}

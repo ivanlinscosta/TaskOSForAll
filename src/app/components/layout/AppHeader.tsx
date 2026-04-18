@@ -41,16 +41,13 @@ export default function Header() {
   return (
     <header
       className="flex h-[72px] items-center justify-between px-6"
-      style={{
-        background: '#0D5C7A',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-      }}
+      style={{ background: '#FFFFFF', borderBottom: '1px solid #EDEAE4' }}
     >
       <div>
-        <h1 className="text-base font-bold text-white">
+        <h1 className="text-base font-bold text-[#061F2A]">
           Olá, {displayName.split(' ')[0]} 👋
         </h1>
-        <p className="text-xs text-white/60">
+        <p className="text-xs text-[#7A7068]">
           Seu assistente de vida
         </p>
       </div>
@@ -60,24 +57,25 @@ export default function Header() {
           type="button"
           size="icon"
           variant="ghost"
-          className="rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
+          className="rounded-xl text-[#7A7068] hover:bg-[#EBF2F5] hover:text-[#0D5C7A]"
         >
           <Bell className="h-4 w-4" />
         </Button>
 
         <button
           onClick={() => navigate('/perfil')}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-1.5 transition hover:bg-white/10"
+          className="flex items-center gap-2.5 rounded-xl border px-3 py-1.5 transition hover:bg-[#EBF2F5]"
+          style={{ borderColor: '#EDEAE4' }}
         >
-          <Avatar className="h-8 w-8" style={{ border: '2px solid rgba(255,255,255,0.3)' }}>
+          <Avatar className="h-8 w-8" style={{ border: '2px solid #EDEAE4' }}>
             <AvatarImage src={userProfile?.avatar} alt={displayName} />
-            <AvatarFallback style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '12px' }}>
+            <AvatarFallback style={{ background: '#0D5C7A', color: '#fff', fontSize: '12px' }}>
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
           <div className="hidden text-left sm:block">
-            <p className="text-sm font-semibold text-white">{displayName}</p>
-            <p className="text-[11px] text-white/60">{role}</p>
+            <p className="text-sm font-semibold text-[#061F2A]">{displayName}</p>
+            <p className="text-[11px] text-[#7A7068]">{role}</p>
           </div>
         </button>
 
@@ -85,7 +83,7 @@ export default function Header() {
           type="button"
           size="icon"
           variant="ghost"
-          className="rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
+          className="rounded-xl text-[#7A7068] hover:bg-red-50 hover:text-red-500"
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" />

@@ -1228,7 +1228,7 @@ export function ForAllFinancePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPerfilDialog(false)}>Cancelar</Button>
             <Button
-              className="bg-[#10B981] text-white hover:bg-[#059669]"
+              className="bg-[#10B981] text-white hover:bg-[#0D5C7A]"
               onClick={handleSavePerfil}
               disabled={savingPerfil}
             >

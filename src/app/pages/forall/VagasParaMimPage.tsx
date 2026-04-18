@@ -76,7 +76,7 @@ function VagaCard({ vaga }: { vaga: VagaRecomendada }) {
             <Clock className="h-3 w-3" /> {vaga.modeloTrabalho}
           </span>
           {vaga.salario && (
-            <span className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-emerald-700" style={{ background: '#D1FAE5' }}>
+            <span className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-emerald-700" style={{ background: '#E8F5F8' }}>
               <DollarSign className="h-3 w-3" /> {vaga.salario}
             </span>
           )}
