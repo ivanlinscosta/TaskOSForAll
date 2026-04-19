@@ -13,19 +13,11 @@ export interface GuidedTourRemoteConfig {
   debugMode: boolean;
 }
 
-export interface VagasIARemoteConfig {
-  enabled: boolean;
-}
-
 const DEFAULTS: GuidedTourRemoteConfig = {
   enabled: false,
   activeCampaignId: '',
   forceShow: false,
   debugMode: false,
-};
-
-const VAGAS_IA_DEFAULTS: VagasIARemoteConfig = {
-  enabled: false,
 };
 
 let _rc: ReturnType<typeof getRemoteConfig> | null = null;
@@ -46,23 +38,8 @@ async function getRC() {
     guided_tour_active_campaign_id: '',
     guided_tour_force_show: 'false',
     guided_tour_debug_mode: 'false',
-    vagas_ia_enabled: 'false',
   };
   return _rc;
-}
-
-export async function fetchVagasIAConfig(): Promise<VagasIARemoteConfig> {
-  try {
-    const rc = await getRC();
-    if (!rc) return VAGAS_IA_DEFAULTS;
-    await fetchAndActivate(rc);
-    return {
-      enabled: getValue(rc, 'vagas_ia_enabled').asBoolean(),
-    };
-  } catch (e) {
-    console.warn('[RemoteConfig] fetchVagasIAConfig failed, using defaults:', e);
-    return VAGAS_IA_DEFAULTS;
-  }
 }
 
 export async function fetchGuidedTourConfig(): Promise<GuidedTourRemoteConfig> {
