@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sparkles, Briefcase, MapPin, Clock, DollarSign,
   ExternalLink, RefreshCw, Code2, Palette,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth-context';
 import { getVagasSalvas, type VagaRecomendada } from '../../../services/vagas-ia-service';
+import { fetchVagasIAConfig } from '../../../services/remote-config-service';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -119,6 +120,11 @@ export function VagasParaMimPage() {
   const uid = user?.uid ?? '';
   const [vagas, setVagas] = useState<VagaRecomendada[]>(() => getVagasSalvas(uid));
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [vagasIAEnabled, setVagasIAEnabled] = useState(false);
+
+  useEffect(() => {
+    fetchVagasIAConfig().then((cfg) => setVagasIAEnabled(cfg.enabled));
+  }, []);
 
   const handleSuccess = () => {
     setVagas(getVagasSalvas(uid));
@@ -137,14 +143,16 @@ export function VagasParaMimPage() {
             Recomendações personalizadas com base no seu perfil profissional
           </p>
         </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          className="gap-2"
-          style={{ background: 'var(--theme-accent)', color: '#fff' }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Buscar novas vagas com IA
-        </Button>
+        {vagasIAEnabled && (
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="gap-2"
+            style={{ background: 'var(--theme-accent)', color: '#fff' }}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Buscar novas vagas com IA
+          </Button>
+        )}
       </div>
 
       {/* Resumo do perfil */}
@@ -216,11 +224,17 @@ export function VagasParaMimPage() {
           </div>
           <div className="text-center">
             <p className="font-semibold text-[var(--theme-foreground)]">Nenhuma vaga encontrada ainda</p>
-            <p className="mt-1 text-sm text-[var(--theme-muted-foreground)]">Clique em "Buscar novas vagas com IA" para começar</p>
+            <p className="mt-1 text-sm text-[var(--theme-muted-foreground)]">
+              {vagasIAEnabled
+                ? 'Clique em "Buscar novas vagas com IA" para começar'
+                : 'A busca por vagas com IA será habilitada em breve para o seu perfil'}
+            </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2" style={{ background: 'var(--theme-accent)', color: '#fff' }}>
-            <Sparkles className="h-4 w-4" /> Buscar vagas agora
-          </Button>
+          {vagasIAEnabled && (
+            <Button onClick={() => setDialogOpen(true)} className="gap-2" style={{ background: 'var(--theme-accent)', color: '#fff' }}>
+              <Sparkles className="h-4 w-4" /> Buscar vagas agora
+            </Button>
+          )}
         </div>
       ) : (
         <>
