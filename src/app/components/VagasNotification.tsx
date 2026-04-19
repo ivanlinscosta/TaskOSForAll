@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { VagasBuscarDialog } from './VagasBuscarDialog';
+import { fetchVagasNotificationEnabled } from '../../services/remote-config-service';
 
 export function VagasNotification() {
   const { vagasAtivas, vagasDismissed, setVagasDismissed } = useAppStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rcEnabled, setRcEnabled] = useState(false);
 
-  if (vagasDismissed || vagasAtivas) return null;
+  useEffect(() => {
+    fetchVagasNotificationEnabled().then(setRcEnabled);
+  }, []);
+
+  if (!rcEnabled || vagasDismissed || vagasAtivas) return null;
 
   return (
     <>

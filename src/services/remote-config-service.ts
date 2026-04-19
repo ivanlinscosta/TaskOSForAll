@@ -38,8 +38,21 @@ async function getRC() {
     guided_tour_active_campaign_id: '',
     guided_tour_force_show: 'false',
     guided_tour_debug_mode: 'false',
+    vagas_notification_enabled: 'false',
   };
   return _rc;
+}
+
+export async function fetchVagasNotificationEnabled(): Promise<boolean> {
+  try {
+    const rc = await getRC();
+    if (!rc) return false;
+    await fetchAndActivate(rc);
+    return getValue(rc, 'vagas_notification_enabled').asBoolean();
+  } catch (e) {
+    console.warn('[RemoteConfig] fetchVagasNotificationEnabled failed:', e);
+    return false;
+  }
 }
 
 export async function fetchGuidedTourConfig(): Promise<GuidedTourRemoteConfig> {
